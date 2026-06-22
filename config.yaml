@@ -72,10 +72,9 @@ devices:
       - key: fuel_level
         preset: fuel_level
         update_interval: 30s
-        filters:
-          - median: { window: 5 }
-          - delta: 0.5
-          - throttle: 60s
+        publish:
+          deadband: 0.5
+          min_interval: 60s
       # GM Extensions (mode 22)
       - { key: gear,         preset: gm_current_gear,     update_interval: 1s }
       - { key: prnd,         preset: gm_prnd_status_alt,  update_interval: 1s }
