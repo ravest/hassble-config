@@ -16,29 +16,65 @@ devices:
   # ──────────────────────────────────────────────────────────────
   # Path A: BLE Passive Scanning (Advertisements)
   # ──────────────────────────────────────────────────────────────
-  - id: living_thermo
-    name: "Living Room Thermometer"
+  # Jaalee JHT — instance_mode: mac → 스캔된 MAC마다 jaalee_jht_{MAC} 엔티티 자동 생성
+  # Ref: https://github.com/eigger/espcomponents/tree/master/components/jaalee_jht
+  # Temp/Humidity formula: https://sensor.jaalee.com/scan_api.html
+  - id: jaalee_jht
+    name: "Jaalee JHT"
     source: advertisement
+    instance_mode: mac
     match:
-      service_data_uuid: "181a"
+      service_data_uuid: "F525"
+      manufacturer_id: 0x004C
     sensors:
       - key: temperature
         device_class: temperature
         unit: "°C"
         state_class: measurement
-        source_field: service_data
-        decode: { offset: 6, length: 2, type: int16, endian: big, scale: 0.1 }
+        accuracy_decimals: 2
+        source_field: manufacturer_data
+        decode: { offset: 18, length: 2, type: uint16, endian: big, scale: 0.002670288, offset_value: -45 }
       - key: humidity
         device_class: humidity
         unit: "%"
         state_class: measurement
-        source_field: service_data
-        decode: { offset: 8, length: 1, type: uint8 }
+        accuracy_decimals: 2
+        source_field: manufacturer_data
+        decode: { offset: 20, length: 2, type: uint16, endian: big, scale: 0.001524504 }
       - key: battery
         device_class: battery
         unit: "%"
-        source_field: service_data
-        decode: { offset: 9, length: 1, type: uint8 }
+        state_class: measurement
+        source_field: manufacturer_data
+        decode: { offset: 23, length: 1, type: uint8 }
+
+  # Parking beacon — instance_mode: shared → MAC 무관, manufacturer 0x035D 광고가 하나의 엔티티 공유
+  # payload 14바이트: [7..10]=월·일·시·분, [11]=배터리(역산), [12..13]=코드
+  - id: parking_beacon
+    name: "Parking Beacon"
+    source: advertisement
+    instance_mode: shared
+    match:
+      manufacturer_id: 0x035D
+    sensors:
+      - key: parking_time
+        device_class: timestamp
+        state_class: measurement
+        source_field: manufacturer_data
+        min_length: 14
+        decode: { offset: 7, length: 4, type: timestamp }
+      - key: parking_battery
+        device_class: battery
+        unit: "%"
+        state_class: measurement
+        source_field: manufacturer_data
+        min_length: 14
+        decode: { offset: 11, length: 1, type: uint8, scale: -1, offset_value: 256 }
+      - key: parking_location
+        platform: text_sensor
+        source_field: manufacturer_data
+        min_length: 14
+        decode: { offset: 12, length: 2, type: string }
 
   # ──────────────────────────────────────────────────────────────
   # Path C: OBD (ELM327) over BLE
