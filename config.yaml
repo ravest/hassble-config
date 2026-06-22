@@ -24,9 +24,9 @@ devices:
     source: advertisement
     instance_mode: mac
     match:
-      service_data_uuid: "F51C"
-      manufacturer_id: 76        # Apple Inc. (0x004C) — kaml은 hex 리터럴 불안정, decimal 사용
+      manufacturer_id: 76           # Apple Inc. (0x004C) — decimal 사용 필수 (hex 0x... 파싱 불안정)
       manufacturer_min_length: 24
+      manufacturer_hex_prefix: "0215"  # iBeacon 타입 마커 (0x02=subtype, 0x15=length 21)
     sensors:
       - key: temperature
         device_class: temperature
