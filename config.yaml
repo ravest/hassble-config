@@ -63,10 +63,7 @@ devices:
         source_field: manufacturer_data
         min_length: 14
         decode: { offset: 7, length: 4, type: timestamp }
-      - key: parking_battery
-        device_class: battery
-        unit: "%"
-        state_class: measurement
+      - key: parking_floor
         source_field: manufacturer_data
         min_length: 14
         decode: { offset: 11, length: 1, type: uint8, scale: -1, offset_value: 256 }
