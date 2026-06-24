@@ -73,7 +73,6 @@ devices:
         platform: text_sensor
         source_field: manufacturer_data
         min_length: 14
-        unit: "구역"
         decode: { offset: 12, length: 2, type: string }
 
   # ──────────────────────────────────────────────────────────────
