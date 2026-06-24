@@ -66,11 +66,14 @@ devices:
       - key: parking_floor
         source_field: manufacturer_data
         min_length: 14
+        accuracy_decimals: 0
+        unit: "층"
         decode: { offset: 11, length: 1, type: uint8, scale: -1, offset_value: 256 }
       - key: parking_location
         platform: text_sensor
         source_field: manufacturer_data
         min_length: 14
+        unit: "구역"
         decode: { offset: 12, length: 2, type: string }
 
   # ──────────────────────────────────────────────────────────────
