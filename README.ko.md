@@ -29,9 +29,23 @@
 
 ---
 
+## 저장소 파일
+
+| 파일 | 용도 |
+|------|------|
+| `config.yaml` | 게이트웨이 운영 설정 (실제로 동작하는 기기 목록) |
+| `templates.yaml` | 센서 탭 **템플릿 가져오기**용 기기 템플릿 |
+
+앱은 선택한 브랜치의 리포 루트에서 두 파일을 고정 이름으로 불러옵니다 (`owner/repo` + 브랜치).
+
 ## 동작 원리
 
-HassBle 앱은 Git raw URL에서 `config.yaml`을 다운로드하고, 정의한 규칙에 따라 BLE 데이터를 디코딩한 뒤, [ws_bridge](https://github.com/eigger/hass-ws-bridge) 통합을 통해 Home Assistant에 자동으로 센서를 등록합니다. 코드 수정 없이 YAML만 편집하면 됩니다.
+HassBle 앱은 이 저장소에서 `config.yaml`과 `templates.yaml`을 다운로드하고, 정의한 규칙에 따라 BLE 데이터를 디코딩한 뒤, [ws_bridge](https://github.com/eigger/hass-ws-bridge) 통합을 통해 Home Assistant에 자동으로 센서를 등록합니다. 코드 수정 없이 YAML만 편집하면 됩니다.
+
+Raw URL (브랜치 `main`):
+
+- 설정: `https://raw.githubusercontent.com/eigger/hassble-config/main/config.yaml`
+- 템플릿: `https://raw.githubusercontent.com/eigger/hassble-config/main/templates.yaml`
 
 ```
 Android Phone (BLE 스캔)
@@ -51,8 +65,8 @@ Android Phone (BLE 스캔)
 ## 빠른 시작
 
 1. 이 저장소를 자신의 GitHub 계정으로 Fork 또는 복사합니다.
-2. `config.yaml`을 편집하여 BLE 기기를 정의합니다.
-3. HassBle 앱 → **Sensors 탭** → `your-username/hassble-config` 입력 → **Browse** 버튼 → `config.yaml` 선택합니다.
+2. `config.yaml`을 편집하여 BLE 기기를 정의합니다. 앱에서 빠르게 추가할 블록은 `templates.yaml`에 넣을 수 있습니다.
+3. HassBle 앱 → **Sensors 탭** → `your-username/hassble-config`와 브랜치 `main` 입력 (`config.yaml` + `templates.yaml` 자동 로드).
 4. **Gateway 탭**에서 HA URL과 토큰(또는 OAuth 로그인)을 입력하고 게이트웨이를 시작합니다.
 5. **Sensors 탭**에서 원하는 센서를 활성화하면 Home Assistant에 나타납니다.
 
