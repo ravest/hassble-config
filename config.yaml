@@ -80,6 +80,35 @@ devices:
         length: 14
         decode: { offset: 12, length: 2, type: string }
 
+  # APT SmartKey 출입문 이벤트 — 고정 MAC으로 하드웨어 필터, 02xx 6바이트 패킷만 파싱
+  # payload 6바이트: [0]=02(이벤트타입), [1..3]=05 00 55, [4]=상태, [5]=카운터
+  # byte[4] 상태값: 0x41(65)=entering_start, 0x01(1)=entering, 0x40(64)=exiting, 0x00(0)=idle
+  # 0x41→0x01 두 값 모두 "entering"으로 매핑 → on_change_only가 중간 전환 노이즈 제거
+  - id: apt_key_door
+    name: "APT Door Event"
+    source: advertisement
+    instance_mode: shared
+    match:
+      manufacturer_id: 861            # 0x035D
+      manufacturer_hex_prefix: "02"   # 출입 이벤트 타입만 (07xx=인증 22B, 04xx=주차응답 14B 제외)
+    sensors:
+      - key: door_status
+        platform: text_sensor
+        icon: mdi:door
+        source_field: manufacturer_data
+        length: 6
+        publish:
+          min_interval: 1s            # 기본 10s 오버라이드 — 이벤트가 수 초 내 전환됨
+        decode:
+          offset: 4
+          length: 1
+          type: uint8
+          map:
+            "65": "entering"          # 0x41 인증 시작
+            "1": "entering"           # 0x01 인증 완료 (entering과 동일 → 전환 노이즈 제거)
+            "64": "exiting"           # 0x40
+            "0": "idle"               # 0x00
+
   # ──────────────────────────────────────────────────────────────
   # Path C: OBD (ELM327) over BLE
   # ──────────────────────────────────────────────────────────────
