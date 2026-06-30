@@ -1,9 +1,10 @@
 # HassBle Configuration File
-# 
-# Host this config.yaml file in a Git repository (e.g., GitHub) and enter the RAW URL in the HassBle Android app.
-# The app will download this configuration, decode BLE advertisements/sensors, and declare/update them in Home Assistant.
 #
-# Do NOT put any Home Assistant credentials (URL/Token) in this file. Enter them directly in the app.
+# Host config.yaml and templates.yaml in a Git repository (e.g., GitHub).
+# In the HassBle app: enter owner/repo and branch (e.g. eigger/hassble-config, main).
+# The app loads config.yaml for the gateway and templates.yaml for Import template.
+#
+# Do NOT put any Home Assistant credentials (URL/Token) in this file. Enter them in the app.
 
 version: 1
 
@@ -64,19 +65,19 @@ devices:
         device_class: timestamp
         icon: mdi:clock-time-four-outline
         source_field: manufacturer_data
-        min_length: 14
+        length: 14
         decode: { offset: 7, length: 4, type: timestamp }
       - key: parking_floor
         icon: mdi:layers-outline
         source_field: manufacturer_data
-        min_length: 14
+        length: 14
         accuracy_decimals: 0
         decode: { offset: 11, length: 1, type: uint8, scale: -1, offset_value: 256 }
       - key: parking_location
         platform: text_sensor
         icon: mdi:map-marker-outline
         source_field: manufacturer_data
-        min_length: 14
+        length: 14
         decode: { offset: 12, length: 2, type: string }
 
   # ──────────────────────────────────────────────────────────────
@@ -91,11 +92,6 @@ devices:
       rx_char_uuid: "2AF0"
       tx_delay: 50ms
       init_commands:
-        - "ATZ"
-        - "ATE0"
-        - "ATL0"
-        - "ATS0"
-        - "ATH0"
         - "ATSP6"
     sensors:
       #- { key: rpm,          preset: rpm,                 update_interval: 1s }

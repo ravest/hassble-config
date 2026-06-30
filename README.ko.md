@@ -2,7 +2,7 @@
 
 > 이 저장소는 [HassBle](https://github.com/eigger/hassble-android) Android 앱의 기기 설정 파일(`config.yaml`)을 저장합니다.
 
-**[English Documentation → README.md](README.md)**
+**[English Documentation → README.md](README.md) | [기여 가이드 → CONTRIBUTING.ko.md](CONTRIBUTING.ko.md)**
 
 ---
 
@@ -26,12 +26,27 @@
 12. [OBD 프리셋 목록](#obd-프리셋-목록)
 13. [전체 예제](#전체-예제)
 14. [주의사항](#주의사항)
+15. [기여하기](#기여하기)
 
 ---
 
+## 저장소 파일
+
+| 파일 | 용도 |
+|------|------|
+| `config.yaml` | 게이트웨이 운영 설정 (실제로 동작하는 기기 목록) |
+| `templates.yaml` | 센서 탭 **템플릿 가져오기**용 기기 템플릿 |
+
+앱은 선택한 브랜치의 리포 루트에서 두 파일을 고정 이름으로 불러옵니다 (`owner/repo` + 브랜치).
+
 ## 동작 원리
 
-HassBle 앱은 Git raw URL에서 `config.yaml`을 다운로드하고, 정의한 규칙에 따라 BLE 데이터를 디코딩한 뒤, [ws_bridge](https://github.com/eigger/hass-ws-bridge) 통합을 통해 Home Assistant에 자동으로 센서를 등록합니다. 코드 수정 없이 YAML만 편집하면 됩니다.
+HassBle 앱은 이 저장소에서 `config.yaml`과 `templates.yaml`을 다운로드하고, 정의한 규칙에 따라 BLE 데이터를 디코딩한 뒤, [ws_bridge](https://github.com/eigger/hass-ws-bridge) 통합을 통해 Home Assistant에 자동으로 센서를 등록합니다. 코드 수정 없이 YAML만 편집하면 됩니다.
+
+Raw URL (브랜치 `main`):
+
+- 설정: `https://raw.githubusercontent.com/eigger/hassble-config/main/config.yaml`
+- 템플릿: `https://raw.githubusercontent.com/eigger/hassble-config/main/templates.yaml`
 
 ```
 Android Phone (BLE 스캔)
@@ -51,8 +66,8 @@ Android Phone (BLE 스캔)
 ## 빠른 시작
 
 1. 이 저장소를 자신의 GitHub 계정으로 Fork 또는 복사합니다.
-2. `config.yaml`을 편집하여 BLE 기기를 정의합니다.
-3. HassBle 앱 → **Sensors 탭** → `your-username/hassble-config` 입력 → **Browse** 버튼 → `config.yaml` 선택합니다.
+2. `config.yaml`을 편집하여 BLE 기기를 정의합니다. 앱에서 빠르게 추가할 블록은 `templates.yaml`에 넣을 수 있습니다.
+3. HassBle 앱 → **Sensors 탭** → `your-username/hassble-config`와 브랜치 `main` 입력 (`config.yaml` + `templates.yaml` 자동 로드).
 4. **Gateway 탭**에서 HA URL과 토큰(또는 OAuth 로그인)을 입력하고 게이트웨이를 시작합니다.
 5. **Sensors 탭**에서 원하는 센서를 활성화하면 Home Assistant에 나타납니다.
 
@@ -700,6 +715,12 @@ update_interval: 1s
 ### 설정은 캐시됨
 
 앱은 마지막으로 성공적으로 불러온 설정을 캐시합니다. 시작 시 네트워크가 없으면 캐시를 사용합니다. 이 경우 앱 상단에 "캐시된 설정 사용 중"이 표시됩니다.
+
+---
+
+## 기여하기
+
+본인 차량의 OBD-II PID 설정을 공유해 주시면 다른 사용자들에게 큰 도움이 됩니다! 자세한 공유 및 기여 방법은 [기여 가이드(CONTRIBUTING.ko.md)](CONTRIBUTING.ko.md)를 참고해 주세요.
 
 ---
 
