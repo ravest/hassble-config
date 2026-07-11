@@ -2,133 +2,224 @@
 # Loaded from repo root as templates.yaml (same branch as config.yaml)
 
 templates:
-  - id: jaalee_jht
-    name: "Jaalee JHT"
-    description: "Temperature / humidity / battery (iBeacon, Apple manufacturer 76)"
+  - id: vw_eup_battery
+    name: "VW e-up! HV Battery"
+    description: "SOC, HV voltage/current, temp, cell spread, isolation (Steuergerät 8C, header 7E5/7ED)"
     device:
-      id: jaalee_jht
-      name: "Jaalee JHT"
-      source: advertisement
-      instance_mode: mac
-      match:
-        manufacturer_id: 76
-        manufacturer_min_length: 24
-        manufacturer_hex_prefix: "0215"
-      sensors:
-        - key: temperature
-          device_class: temperature
-          unit: "°C"
-          state_class: measurement
-          accuracy_decimals: 2
-          source_field: manufacturer_data
-          decode: { offset: 18, length: 2, type: uint16, endian: big, scale: 0.002670288, offset_value: -45 }
-        - key: humidity
-          device_class: humidity
-          unit: "%"
-          state_class: measurement
-          accuracy_decimals: 2
-          source_field: manufacturer_data
-          decode: { offset: 20, length: 2, type: uint16, endian: big, scale: 0.001524504 }
-        - key: battery
-          device_class: battery
-          unit: "%"
-          state_class: measurement
-          source_field: manufacturer_data
-          decode: { offset: 23, length: 1, type: uint8 }
-
-  - id: parking_beacon
-    name: "Parking Beacon"
-    description: "Shared parking beacon (manufacturer 861 / 0x035D)"
-    device:
-      id: parking_beacon
-      name: "Parking Beacon"
-      source: advertisement
-      instance_mode: shared
-      match:
-        manufacturer_id: 861
-      sensors:
-        - key: parking_time
-          device_class: timestamp
-          icon: mdi:clock-time-four-outline
-          source_field: manufacturer_data
-          length: 14
-          decode: { offset: 7, length: 4, type: timestamp }
-        - key: parking_floor
-          icon: mdi:layers-outline
-          source_field: manufacturer_data
-          length: 14
-          accuracy_decimals: 0
-          decode: { offset: 11, length: 1, type: uint8, scale: -1, offset_value: 256 }
-        - key: parking_location
-          platform: text_sensor
-          icon: mdi:map-marker-outline
-          source_field: manufacturer_data
-          length: 14
-          decode: { offset: 12, length: 2, type: string }
-
-  - id: obd_standard
-    name: "OBD-II (standard PIDs)"
-    description: "RPM, speed, coolant, fuel — bind ELM327 adapter in app"
-    device:
-      id: obd_vehicle
-      name: "OBD Vehicle"
+      id: eup_hv_battery
+      name: "VW e-up! HV Battery"
       source: obd
       obd:
         service_uuid: "FFF0"
         tx_char_uuid: "FFF2"
         rx_char_uuid: "FFF1"
         tx_delay: 50ms
-        init_commands: []
+        init_commands:
+          - "ATZ"
+          - "ATE0"
+          - "ATL0"
+          - "ATS0"
+          - "ATH0"
+          - "ATSP6"
       sensors:
-        - { key: rpm, preset: rpm, update_interval: 1s }
-        - { key: speed, preset: speed, update_interval: 1s }
-        - { key: coolant_temp, preset: coolant_temp, update_interval: 10s }
-        - { key: fuel_level, preset: fuel_level, update_interval: 30s }
+        - key: hv_soc
+          name: "HV Battery SOC (gross)"
+          mode: "22"
+          pid: "028C"
+          formula: "a/2.55"
+          unit: "%"
+          device_class: battery
+          state_class: measurement
+          accuracy_decimals: 1
+          update_interval: 10s
+          pre_commands: ["ATSH7E5"]
 
-  - id: obd_gm_extended
-    name: "OBD-II + GM extensions"
-    description: "Standard PIDs plus GM mode-22 sensors (ATSP6 init)"
+        - key: hv_battery_voltage
+          name: "HV Battery Voltage"
+          mode: "22"
+          pid: "1E3B"
+          formula: "(a*256+b)/4"
+          unit: "V"
+          device_class: voltage
+          state_class: measurement
+          accuracy_decimals: 1
+          update_interval: 5s
+          pre_commands: ["ATSH7E5"]
+
+        - key: hv_battery_current
+          name: "HV Battery Current"
+          mode: "22"
+          pid: "1E3D"
+          formula: "(a*256+b-2044)/4"
+          unit: "A"
+          device_class: current
+          state_class: measurement
+          accuracy_decimals: 1
+          update_interval: 5s
+          pre_commands: ["ATSH7E5"]
+
+        - key: hv_battery_temp
+          name: "HV Battery Temperature"
+          mode: "22"
+          pid: "2A0B"
+          formula: "(a*256+b)/64"
+          unit: "°C"
+          device_class: temperature
+          state_class: measurement
+          accuracy_decimals: 1
+          update_interval: 15s
+          pre_commands: ["ATSH7E5"]
+
+        - key: hv_cell_voltage_max
+          name: "Max Cell Voltage"
+          mode: "22"
+          pid: "1E33"
+          formula: "(a*256+b)/4096"
+          unit: "V"
+          state_class: measurement
+          accuracy_decimals: 3
+          update_interval: 30s
+          pre_commands: ["ATSH7E5"]
+
+        - key: hv_cell_voltage_min
+          name: "Min Cell Voltage"
+          mode: "22"
+          pid: "1E34"
+          formula: "(a*256+b)/4096"
+          unit: "V"
+          state_class: measurement
+          accuracy_decimals: 3
+          update_interval: 30s
+          pre_commands: ["ATSH7E5"]
+
+        - key: hv_isolation_resistance
+          name: "HV Isolation Resistance"
+          mode: "22"
+          pid: "1E17"
+          formula: "(a*256+b)*10"
+          unit: "kΩ"
+          state_class: measurement
+          entity_category: diagnostic
+          update_interval: 60s
+          pre_commands: ["ATSH7E5"]
+
+  - id: vw_eup_drive
+    name: "VW e-up! Drive Motor"
+    description: "RPM, torque, power, temps, traction voltage (Steuergerät 51, header 7E6/7EE)"
     device:
-      id: car_obd
-      name: "Vehicle OBD"
+      id: eup_drive
+      name: "VW e-up! Drive Motor"
       source: obd
       obd:
-        service_uuid: "18F0"
-        tx_char_uuid: "2AF1"
-        rx_char_uuid: "2AF0"
+        service_uuid: "FFF0"
+        tx_char_uuid: "FFF2"
+        rx_char_uuid: "FFF1"
         tx_delay: 50ms
-        init_commands: ["ATSP6"]
+        init_commands:
+          - "ATZ"
+          - "ATE0"
+          - "ATL0"
+          - "ATS0"
+          - "ATH0"
+          - "ATSP6"
       sensors:
-        - { key: rpm, preset: rpm, update_interval: 1s }
-        - { key: speed, preset: speed, update_interval: 1s }
-        - { key: coolant_temp, preset: coolant_temp, update_interval: 10s }
-        - key: fuel_level
-          preset: fuel_level
-          update_interval: 30s
-          publish: { deadband: 0.5, min_interval: 60s }
-        - { key: gear, preset: gm_current_gear, update_interval: 1s }
-        - { key: prnd, preset: gm_prnd_status_alt, update_interval: 1s }
-        - { key: oil_pressure, preset: gm_oil_pressure, update_interval: 2s }
-        - { key: trans_temp, preset: gm_trans_temp, update_interval: 10s }
-
-  - id: gatt_meter_relay
-    name: "GATT power meter + relay"
-    description: "Notify characteristic + switch control example"
-    device:
-      id: custom_meter
-      name: "Custom BLE Meter"
-      source: gatt_notify
-      gatt:
-        service_uuid: "ffe0"
-        notify_char_uuid: "ffe1"
-        write_char_uuid: "ffe2"
-      sensors:
-        - key: power
-          unit: "W"
-          device_class: power
+        - key: motor_rpm
+          name: "Motor RPM"
+          mode: "22"
+          pid: "4659"
+          formula: "a*256+b"
+          unit: "rpm"
           state_class: measurement
-          decode: { offset: 0, length: 2, type: uint16, endian: little }
-      controls:
-        - key: relay
-          type: switch
-          command: { on: "A10100", off: "A10000" }
+          update_interval: 1s
+          pre_commands: ["ATSH7E6"]
+
+        - key: motor_torque
+          name: "Motor Torque"
+          mode: "22"
+          pid: "3EE9"
+          formula: "(a*256+b)/16"
+          unit: "Nm"
+          state_class: measurement
+          accuracy_decimals: 1
+          update_interval: 1s
+          pre_commands: ["ATSH7E6"]
+
+        - key: motor_power_electrical
+          name: "Motor Electrical Power"
+          mode: "22"
+          pid: "4656"
+          formula: "(a*256+b)/64"
+          unit: "kW"
+          state_class: measurement
+          accuracy_decimals: 2
+          update_interval: 1s
+          pre_commands: ["ATSH7E6"]
+
+        - key: motor_power_mechanical
+          name: "Motor Mechanical Power"
+          mode: "22"
+          pid: "4658"
+          formula: "(a*256+b)/64"
+          unit: "kW"
+          state_class: measurement
+          accuracy_decimals: 2
+          update_interval: 1s
+          pre_commands: ["ATSH7E6"]
+
+        - key: motor_temp
+          name: "Motor Temperature"
+          mode: "22"
+          pid: "3E94"
+          formula: "(a*256+b)/64"
+          unit: "°C"
+          device_class: temperature
+          state_class: measurement
+          accuracy_decimals: 1
+          update_interval: 15s
+          pre_commands: ["ATSH7E6"]
+
+        - key: inverter_dcdc_temp
+          name: "DC/DC Converter Temperature"
+          mode: "22"
+          pid: "3EB5"
+          formula: "(a*256+b)/64"
+          unit: "°C"
+          device_class: temperature
+          state_class: measurement
+          accuracy_decimals: 1
+          update_interval: 15s
+          pre_commands: ["ATSH7E6"]
+
+        - key: traction_dc_link_voltage
+          name: "Traction DC Link Voltage"
+          mode: "22"
+          pid: "3E93"
+          formula: "(a*256+b)/32"
+          unit: "V"
+          device_class: voltage
+          state_class: measurement
+          accuracy_decimals: 1
+          update_interval: 5s
+          pre_commands: ["ATSH7E6"]
+
+        - key: accelerator_pedal
+          name: "Accelerator Pedal Position"
+          mode: "22"
+          pid: "F449"
+          formula: "a/2.55"
+          unit: "%"
+          state_class: measurement
+          accuracy_decimals: 1
+          update_interval: 1s
+          pre_commands: ["ATSH7E6"]
+
+        - key: motor_coolant_temp
+          name: "Motor Coolant Temperature"
+          mode: "22"
+          pid: "F405"
+          formula: "a-40"
+          unit: "°C"
+          device_class: temperature
+          state_class: measurement
+          update_interval: 15s
+          pre_commands: ["ATSH7E6"]
