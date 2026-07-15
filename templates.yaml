@@ -186,3 +186,62 @@ templates:
           accuracy_decimals: 1
           update_interval: 1s
           pre_commands: ["ATSH7E6"]
+
+  - id: vw_eup_misc
+    name: "VW e-up! Speed / 12V / Range / Odometer"
+    description: "Main ECU + cluster: speed, 12V battery, estimated range, odometer (experimental)"
+    device:
+      id: eup_misc
+      name: "VW e-up! Misc"
+      source: obd
+      obd:
+        service_uuid: "FFF0"
+        tx_char_uuid: "FFF2"
+        rx_char_uuid: "FFF1"
+        tx_delay: 50ms
+        init_commands:
+          - "ATZ"
+          - "ATE0"
+          - "ATL0"
+          - "ATS0"
+          - "ATH0"
+          - "ATSP6"
+      sensors:
+        - key: vehicle_speed
+          mode: "22"
+          pid: "F40D"
+          formula: "a"
+          unit: "km/h"
+          device_class: speed
+          state_class: measurement
+          update_interval: 1s
+          pre_commands: ["ATSH7E0"]
+
+        - key: battery_12v_voltage
+          mode: "22"
+          pid: "105A"
+          formula: "(a*256+b)*0.02"
+          unit: "V"
+          device_class: voltage
+          state_class: measurement
+          accuracy_decimals: 2
+          update_interval: 30s
+          pre_commands: ["ATSH7E0"]
+
+        - key: estimated_range
+          mode: "22"
+          pid: "22E0"
+          formula: "a*256+b"
+          unit: "km"
+          state_class: measurement
+          update_interval: 30s
+          pre_commands: ["ATSH714", "ATCRA77E"]
+
+        - key: odometer
+          mode: "22"
+          pid: "02BD"
+          formula: "b*65536+c*256+d"
+          unit: "km"
+          state_class: total_increasing
+          update_interval: 60s
+          pre_commands: ["ATSH7E5"]
