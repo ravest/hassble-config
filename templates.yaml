@@ -23,7 +23,6 @@ templates:
           - "ATSP6"
       sensors:
         - key: hv_soc
-          name: "HV Battery SOC (gross)"
           mode: "22"
           pid: "028C"
           formula: "a/2.55"
@@ -35,7 +34,6 @@ templates:
           pre_commands: ["ATSH7E5"]
 
         - key: hv_battery_voltage
-          name: "HV Battery Voltage"
           mode: "22"
           pid: "1E3B"
           formula: "(a*256+b)/4"
@@ -47,7 +45,6 @@ templates:
           pre_commands: ["ATSH7E5"]
 
         - key: hv_battery_current
-          name: "HV Battery Current"
           mode: "22"
           pid: "1E3D"
           formula: "(a*256+b-2044)/4"
@@ -59,7 +56,6 @@ templates:
           pre_commands: ["ATSH7E5"]
 
         - key: hv_battery_temp
-          name: "HV Battery Temperature"
           mode: "22"
           pid: "2A0B"
           formula: "(a*256+b)/64"
@@ -71,7 +67,6 @@ templates:
           pre_commands: ["ATSH7E5"]
 
         - key: hv_cell_voltage_max
-          name: "Max Cell Voltage"
           mode: "22"
           pid: "1E33"
           formula: "(a*256+b)/4096"
@@ -82,7 +77,6 @@ templates:
           pre_commands: ["ATSH7E5"]
 
         - key: hv_cell_voltage_min
-          name: "Min Cell Voltage"
           mode: "22"
           pid: "1E34"
           formula: "(a*256+b)/4096"
@@ -93,7 +87,6 @@ templates:
           pre_commands: ["ATSH7E5"]
 
         - key: hv_isolation_resistance
-          name: "HV Isolation Resistance"
           mode: "22"
           pid: "1E17"
           formula: "(a*256+b)*10"
@@ -124,7 +117,6 @@ templates:
           - "ATSP6"
       sensors:
         - key: motor_rpm
-          name: "Motor RPM"
           mode: "22"
           pid: "4659"
           formula: "a*256+b"
@@ -134,7 +126,6 @@ templates:
           pre_commands: ["ATSH7E6"]
 
         - key: motor_torque
-          name: "Motor Torque"
           mode: "22"
           pid: "3EE9"
           formula: "(a*256+b)/16"
@@ -145,7 +136,6 @@ templates:
           pre_commands: ["ATSH7E6"]
 
         - key: motor_power_electrical
-          name: "Motor Electrical Power"
           mode: "22"
           pid: "4656"
           formula: "(a*256+b)/64"
@@ -156,7 +146,6 @@ templates:
           pre_commands: ["ATSH7E6"]
 
         - key: motor_power_mechanical
-          name: "Motor Mechanical Power"
           mode: "22"
           pid: "4658"
           formula: "(a*256+b)/64"
@@ -167,7 +156,6 @@ templates:
           pre_commands: ["ATSH7E6"]
 
         - key: motor_temp
-          name: "Motor Temperature"
           mode: "22"
           pid: "3E94"
           formula: "(a*256+b)/64"
@@ -179,7 +167,6 @@ templates:
           pre_commands: ["ATSH7E6"]
 
         - key: inverter_dcdc_temp
-          name: "DC/DC Converter Temperature"
           mode: "22"
           pid: "3EB5"
           formula: "(a*256+b)/64"
@@ -191,7 +178,6 @@ templates:
           pre_commands: ["ATSH7E6"]
 
         - key: traction_dc_link_voltage
-          name: "Traction DC Link Voltage"
           mode: "22"
           pid: "3E93"
           formula: "(a*256+b)/32"
@@ -203,7 +189,6 @@ templates:
           pre_commands: ["ATSH7E6"]
 
         - key: accelerator_pedal
-          name: "Accelerator Pedal Position"
           mode: "22"
           pid: "F449"
           formula: "a/2.55"
@@ -214,7 +199,6 @@ templates:
           pre_commands: ["ATSH7E6"]
 
         - key: motor_coolant_temp
-          name: "Motor Coolant Temperature"
           mode: "22"
           pid: "F405"
           formula: "a-40"
