@@ -189,17 +189,6 @@ devices:
         update_interval: 15s
         pre_commands: ["ATSH7E6"]
 
-      - key: inverter_dcdc_temp
-        mode: "22"
-        pid: "3EB5"
-        formula: "(a*256+b)/64"      # SIGNED — see chat notes
-        unit: "°C"
-        device_class: temperature
-        state_class: measurement
-        accuracy_decimals: 1
-        update_interval: 15s
-        pre_commands: ["ATSH7E6"]
-
       - key: traction_dc_link_voltage
         mode: "22"
         pid: "3E93"
@@ -219,14 +208,4 @@ devices:
         state_class: measurement
         accuracy_decimals: 1
         update_interval: 1s
-        pre_commands: ["ATSH7E6"]
-
-      - key: motor_coolant_temp
-        mode: "22"
-        pid: "F405"
-        formula: "a-40"
-        unit: "°C"
-        device_class: temperature
-        state_class: measurement
-        update_interval: 15s
         pre_commands: ["ATSH7E6"]
