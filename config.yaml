@@ -209,3 +209,59 @@ devices:
         accuracy_decimals: 1
         update_interval: 1s
         pre_commands: ["ATSH7E6"]
+
+      # ============================================================
+      # Steuergerät 01 — Motorelektronik / main ECU (header 7E0/7E8)
+      # ============================================================
+
+      - key: vehicle_speed
+        mode: "22"
+        pid: "F40D"
+        formula: "a"
+        unit: "km/h"
+        device_class: speed
+        state_class: measurement
+        update_interval: 1s
+        pre_commands: ["ATSH7E0"]
+
+      - key: battery_12v_voltage
+        mode: "22"
+        pid: "105A"
+        formula: "(a*256+b)*0.02"
+        unit: "V"
+        device_class: voltage
+        state_class: measurement
+        accuracy_decimals: 2
+        update_interval: 30s
+        pre_commands: ["ATSH7E0"]
+
+      # ============================================================
+      # Steuergerät 17 — Kombiinstrument / cluster (header 714/77E — note: NOT
+      # a simple +8 response offset, needs explicit ATCRA)
+      # ============================================================
+
+      - key: estimated_range
+        mode: "22"
+        pid: "22E0"
+        formula: "a*256+b"
+        unit: "km"
+        state_class: measurement
+        update_interval: 30s
+        pre_commands: ["ATSH714", "ATCRA77E"]
+
+      # ============================================================
+      # Odometer — EXPERIMENTAL. Community reports this response is
+      # multi-frame (long ISO-TP reply); cheap ELM327 BLE clones may not
+      # reassemble it correctly. Byte offsets (b,c,d) are a best guess from
+      # forum notes, not independently confirmed. Watch for garbage/jumping
+      # values — if so, this one may need to be removed again.
+      # ============================================================
+
+      - key: odometer
+        mode: "22"
+        pid: "02BD"
+        formula: "b*65536+c*256+d"
+        unit: "km"
+        state_class: total_increasing
+        update_interval: 60s
+        pre_commands: ["ATSH7E5"]
