@@ -265,3 +265,21 @@ devices:
         state_class: total_increasing
         update_interval: 60s
         pre_commands: ["ATSH7E5"]
+
+      # ============================================================
+      # Standard mode-01 PIDs — built-in presets, no header switching
+      # needed on a fresh session, but since other sensors above set
+      # custom headers (7E5/7E6/7E0/714), explicitly reset to the
+      # standard broadcast header (7DF) first so these aren't polled
+      # under a leftover custom header.
+      # ============================================================
+
+      - key: vehicle_speed_std
+        preset: speed
+        update_interval: 1s
+        pre_commands: ["ATSH7DF"]
+
+      - key: odometer_std
+        preset: odometer
+        update_interval: 30s
+        pre_commands: ["ATSH7DF"]
