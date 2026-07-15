@@ -225,15 +225,9 @@ devices:
         pre_commands: ["ATSH7E0"]
 
       - key: battery_12v_voltage
-        mode: "22"
-        pid: "105A"
-        formula: "(a*256+b)*0.02"
-        unit: "V"
-        device_class: voltage
-        state_class: measurement
-        accuracy_decimals: 2
+        preset: battery_voltage
         update_interval: 30s
-        pre_commands: ["ATSH7E0"]
+        pre_commands: ["ATSH7DF"]
 
       # ============================================================
       # Steuergerät 17 — Kombiinstrument / cluster (header 714/77E — note: NOT
