@@ -17,7 +17,7 @@ devices:
   # ──────────────────────────────────────────────────────────────
   # VW e-up! via ELM327 BLE (KONNWEI clone)
   # ──────────────────────────────────────────────────────────────
-  - id: eup_obd
+  - id: eup_all
     name: "VW e-up! OBD"
     source: obd
     obd:
