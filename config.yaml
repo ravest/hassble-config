@@ -163,6 +163,10 @@ devices:
       # Steuergerät 51 — Elektroantrieb / Drive motor (header 7E6/7EE)
       # ============================================================
 
+      # 16 Jul: added publish.min_interval=1s override — matches the 1s
+      # poll rate so HA sees updates near-live instead of capped at the
+      # global 10s default. on_change_only still applies (no spam while
+      # value is steady).
       - key: 3_motor_rpm
         mode: "22"
         pid: "4659"
@@ -171,6 +175,7 @@ devices:
         state_class: measurement
         update_interval: 1s
         pre_commands: ["ATSH7E6"]
+        publish: { min_interval: 1s }
 
       - key: 3_motor_torque
         mode: "22"
@@ -181,6 +186,7 @@ devices:
         accuracy_decimals: 1
         update_interval: 1s
         pre_commands: ["ATSH7E6"]
+        publish: { min_interval: 1s }
 
       - key: 3_motor_power_electrical
         mode: "22"
@@ -191,6 +197,7 @@ devices:
         accuracy_decimals: 2
         update_interval: 1s
         pre_commands: ["ATSH7E6"]
+        publish: { min_interval: 1s }
 
       - key: 3_motor_power_mechanical
         mode: "22"
@@ -201,6 +208,7 @@ devices:
         accuracy_decimals: 2
         update_interval: 1s
         pre_commands: ["ATSH7E6"]
+        publish: { min_interval: 1s }
 
       # 16 Jul: relaxed 15s -> 30s (slow-changing thermal value).
       - key: 2_motor_temp
@@ -228,6 +236,8 @@ devices:
         update_interval: 60s
         pre_commands: ["ATSH7E6"]
 
+      # 16 Jul: added publish.min_interval=1s override (see motor sensors
+      # above for rationale).
       - key: 3_accelerator_pedal
         mode: "22"
         pid: "F449"
@@ -237,6 +247,7 @@ devices:
         accuracy_decimals: 1
         update_interval: 1s
         pre_commands: ["ATSH7E0"]
+        publish: { min_interval: 1s }
 
       # ============================================================
       # Steuergerät 01 — Motorelektronik / main ECU (header 7E0/7E8)
@@ -278,10 +289,13 @@ devices:
       # PID sitting in the shared sequential poll queue delays everything
       # behind it. No other documented odometer PID found for this car.
 
+      # 16 Jul: added publish.min_interval=1s override (see motor sensors
+      # above for rationale).
       - key: 4_vehicle_speed_std
         preset: speed
         update_interval: 1s
         pre_commands: ["ATSH7DF"]
+        publish: { min_interval: 1s }
 
       # ============================================================
       # New sensors, confirmed against community-vetted Car Scanner CSV
