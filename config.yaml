@@ -251,29 +251,15 @@ devices:
       # values — if so, this one may need to be removed again.
       # ============================================================
 
-      - key: odometer
-        mode: "22"
-        pid: "02BD"
-        formula: "b*65536+c*256+d"
-        unit: "km"
-        state_class: total_increasing
-        update_interval: 60s
-        pre_commands: ["ATSH7E5"]
-
-      # ============================================================
-      # Standard mode-01 PIDs — built-in presets, no header switching
-      # needed on a fresh session, but since other sensors above set
-      # custom headers (7E5/7E6/7E0/714), explicitly reset to the
-      # standard broadcast header (7DF) first so these aren't polled
-      # under a leftover custom header.
-      # ============================================================
+      # Odometer removed — neither the VAG-specific mode-22 PID (multi-frame,
+      # unconfirmed byte offsets) nor the standard mode-01 PID A6 (likely
+      # not implemented on EU-market cars, added mainly for US/CARB
+      # anti-tampering requirements) returned usable data. Both also caused
+      # polling lag on other sensors — an unsupported/malformed-response
+      # PID sitting in the shared sequential poll queue delays everything
+      # behind it. No other documented odometer PID found for this car.
 
       - key: vehicle_speed_std
         preset: speed
         update_interval: 1s
-        pre_commands: ["ATSH7DF"]
-
-      - key: odometer_std
-        preset: odometer
-        update_interval: 30s
         pre_commands: ["ATSH7DF"]
