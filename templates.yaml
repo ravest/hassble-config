@@ -228,14 +228,9 @@ templates:
           update_interval: 30s
           pre_commands: ["ATSH7E0"]
 
-        - key: 3_estimated_range
-          mode: "22"
-          pid: "22E0"
-          formula: "a*256+b"
-          unit: "km"
-          state_class: measurement
-          update_interval: 30s
-          pre_commands: ["ATSH714", "ATCRA77E"]
+        # estimated_range removed — confirmed via live testing to stall
+        # the shared polling queue (non-standard header/CRA pattern).
+        # See config.yaml comments for details.
 
         # Odometer removed — no working PID found for this car (see
         # config.yaml comments for details).
