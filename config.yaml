@@ -52,14 +52,11 @@ devices:
         update_interval: 10s
         pre_commands: ["ATSH7E5"]
 
-      # MEDIUM CONFIDENCE: this targets the *displayed/dashboard* SOC
-      # (normalized to usable capacity, ~12% less than the gross SOC
-      # above), as opposed to hv_soc which is the raw BMS value. PID and
-      # header are confirmed from community docs, but the exact formula
-      # is NOT independently confirmed — it's a best-effort guess based
-      # on the same single-byte /2.55 pattern used by the other SOC PIDs
-      # on this car. Also: per community reports, this PID may only
-      # respond with ignition on, not necessarily while charging.
+      # MEDIUM CONFIDENCE — NOW DISPROVEN BY LIVE TESTING (16 Jul): read
+      # 11.8% while hv_soc read 74.5% — not a plausible normalized-SOC
+      # relationship (should be somewhat higher than gross, not 1/6th of
+      # it). Either the PID or the formula is wrong. Kept disabled by
+      # default; consider removing entirely if not worth further guessing.
       - key: 4_hv_soc_display_UNCONFIRMED
         mode: "22"
         pid: "1164"
@@ -249,18 +246,12 @@ devices:
         pre_commands: ["ATSH7DF"]
 
       # ============================================================
-      # Steuergerät 17 — Kombiinstrument / cluster (header 714/77E — note: NOT
-      # a simple +8 response offset, needs explicit ATCRA)
+      # Steuergerät 17 — Kombiinstrument / cluster (header 714/77E) —
+      # estimated_range REMOVED. Confirmed via live testing (16 Jul) that
+      # this sensor's non-standard header/CRA pattern was stalling the
+      # entire shared polling queue — disabling it alone fixed every other
+      # sensor's update lag. Same failure category as odometer above.
       # ============================================================
-
-      - key: 3_estimated_range
-        mode: "22"
-        pid: "22E0"
-        formula: "a*256+b"
-        unit: "km"
-        state_class: measurement
-        update_interval: 30s
-        pre_commands: ["ATSH714", "ATCRA77E"]
 
       # ============================================================
       # Odometer — EXPERIMENTAL. Community reports this response is
@@ -336,7 +327,7 @@ devices:
       - key: 2_ambient_temp
         mode: "22"
         pid: "F446"
-        formula: "a/8"
+        formula: "a-40"
         unit: "°C"
         device_class: temperature
         state_class: measurement
