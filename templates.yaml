@@ -22,7 +22,7 @@ templates:
           - "ATH0"
           - "ATSP6"
       sensors:
-        - key: hv_soc
+        - key: tier1_hv_soc
           mode: "22"
           pid: "028C"
           formula: "a/2.55"
@@ -33,7 +33,7 @@ templates:
           update_interval: 10s
           pre_commands: ["ATSH7E5"]
 
-        - key: hv_battery_voltage
+        - key: tier1_hv_battery_voltage
           mode: "22"
           pid: "1E3B"
           formula: "(a*256+b)/4"
@@ -44,7 +44,7 @@ templates:
           update_interval: 5s
           pre_commands: ["ATSH7E5"]
 
-        - key: hv_battery_current
+        - key: tier1_hv_battery_current
           mode: "22"
           pid: "1E3D"
           formula: "(a*256+b-2044)/4"
@@ -55,7 +55,7 @@ templates:
           update_interval: 5s
           pre_commands: ["ATSH7E5"]
 
-        - key: hv_battery_temp
+        - key: tier2_hv_battery_temp
           mode: "22"
           pid: "2A0B"
           formula: "(a*256+b)/64"
@@ -66,7 +66,7 @@ templates:
           update_interval: 15s
           pre_commands: ["ATSH7E5"]
 
-        - key: hv_cell_voltage_max
+        - key: tier2_hv_cell_voltage_max
           mode: "22"
           pid: "1E33"
           formula: "(a*256+b)/4096"
@@ -76,7 +76,7 @@ templates:
           update_interval: 30s
           pre_commands: ["ATSH7E5"]
 
-        - key: hv_cell_voltage_min
+        - key: tier2_hv_cell_voltage_min
           mode: "22"
           pid: "1E34"
           formula: "(a*256+b)/4096"
@@ -86,7 +86,7 @@ templates:
           update_interval: 30s
           pre_commands: ["ATSH7E5"]
 
-        - key: hv_isolation_resistance
+        - key: tier2_hv_isolation_resistance
           mode: "22"
           pid: "1E17"
           formula: "(a*256+b)*10"
@@ -116,7 +116,7 @@ templates:
           - "ATH0"
           - "ATSP6"
       sensors:
-        - key: motor_rpm
+        - key: tier3_motor_rpm
           mode: "22"
           pid: "4659"
           formula: "a*256+b"
@@ -125,7 +125,7 @@ templates:
           update_interval: 1s
           pre_commands: ["ATSH7E6"]
 
-        - key: motor_torque
+        - key: tier3_motor_torque
           mode: "22"
           pid: "3EE9"
           formula: "(a*256+b)/16"
@@ -135,7 +135,7 @@ templates:
           update_interval: 1s
           pre_commands: ["ATSH7E6"]
 
-        - key: motor_power_electrical
+        - key: tier3_motor_power_electrical
           mode: "22"
           pid: "4656"
           formula: "(a*256+b)/64"
@@ -145,7 +145,7 @@ templates:
           update_interval: 1s
           pre_commands: ["ATSH7E6"]
 
-        - key: motor_power_mechanical
+        - key: tier3_motor_power_mechanical
           mode: "22"
           pid: "4658"
           formula: "(a*256+b)/64"
@@ -155,7 +155,7 @@ templates:
           update_interval: 1s
           pre_commands: ["ATSH7E6"]
 
-        - key: motor_temp
+        - key: tier2_motor_temp
           mode: "22"
           pid: "3E94"
           formula: "(a*256+b)/64"
@@ -166,7 +166,7 @@ templates:
           update_interval: 15s
           pre_commands: ["ATSH7E6"]
 
-        - key: traction_dc_link_voltage
+        - key: tier3_traction_dc_link_voltage
           mode: "22"
           pid: "3E93"
           formula: "(a*256+b)/32"
@@ -177,7 +177,7 @@ templates:
           update_interval: 5s
           pre_commands: ["ATSH7E6"]
 
-        - key: accelerator_pedal
+        - key: tier3_accelerator_pedal
           mode: "22"
           pid: "F449"
           formula: "a/2.55"
@@ -207,7 +207,7 @@ templates:
           - "ATH0"
           - "ATSP6"
       sensors:
-        - key: vehicle_speed
+        - key: tier3_vehicle_speed
           mode: "22"
           pid: "F40D"
           formula: "a"
@@ -217,7 +217,7 @@ templates:
           update_interval: 1s
           pre_commands: ["ATSH7E0"]
 
-        - key: battery_12v_voltage
+        - key: tier1_battery_12v_voltage
           mode: "22"
           pid: "105A"
           formula: "(a*256+b)*0.02"
@@ -228,7 +228,7 @@ templates:
           update_interval: 30s
           pre_commands: ["ATSH7E0"]
 
-        - key: estimated_range
+        - key: tier3_estimated_range
           mode: "22"
           pid: "22E0"
           formula: "a*256+b"
