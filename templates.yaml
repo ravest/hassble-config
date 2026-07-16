@@ -237,11 +237,5 @@ templates:
           update_interval: 30s
           pre_commands: ["ATSH714", "ATCRA77E"]
 
-        - key: odometer
-          mode: "22"
-          pid: "02BD"
-          formula: "b*65536+c*256+d"
-          unit: "km"
-          state_class: total_increasing
-          update_interval: 60s
-          pre_commands: ["ATSH7E5"]
+        # Odometer removed — no working PID found for this car (see
+        # config.yaml comments for details).
