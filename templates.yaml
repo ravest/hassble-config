@@ -207,26 +207,19 @@ templates:
           - "ATH0"
           - "ATSP6"
       sensors:
-        - key: 3_vehicle_speed
-          mode: "22"
-          pid: "F40D"
-          formula: "a"
-          unit: "km/h"
-          device_class: speed
-          state_class: measurement
+        # 16 Jul: uses standard mode-01 presets (speed, battery_voltage)
+        # instead of custom mode-22 PIDs — confirmed more reliable in
+        # live testing on config.yaml's actual running device.
+        - key: 4_vehicle_speed_std
+          preset: speed
           update_interval: 1s
-          pre_commands: ["ATSH7E0"]
+          pre_commands: ["ATSH7DF"]
 
+        # 16 Jul: relaxed 30s -> 60s (very slow-changing accessory voltage).
         - key: 1_battery_12v_voltage
-          mode: "22"
-          pid: "105A"
-          formula: "(a*256+b)*0.02"
-          unit: "V"
-          device_class: voltage
-          state_class: measurement
-          accuracy_decimals: 2
-          update_interval: 30s
-          pre_commands: ["ATSH7E0"]
+          preset: battery_voltage
+          update_interval: 60s
+          pre_commands: ["ATSH7DF"]
 
         # estimated_range removed — confirmed via live testing to stall
         # the shared polling queue (non-standard header/CRA pattern).
