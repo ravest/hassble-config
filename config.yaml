@@ -41,6 +41,8 @@ devices:
       # Steuergerät 8C — Hybrid-Batteriemanagement (header 7E5/7ED)
       # ============================================================
 
+      # 16 Jul: relaxed 10s -> 30s. SOC changes slowly; frees polling
+      # bandwidth for fast-changing sensors sharing the same BLE link.
       - key: 1_hv_soc
         mode: "22"
         pid: "028C"
@@ -49,7 +51,7 @@ devices:
         device_class: battery
         state_class: measurement
         accuracy_decimals: 1
-        update_interval: 10s
+        update_interval: 30s
         pre_commands: ["ATSH7E5"]
 
       # MEDIUM CONFIDENCE — NOW DISPROVEN BY LIVE TESTING (16 Jul): read
@@ -87,9 +89,12 @@ devices:
         device_class: current
         state_class: measurement
         accuracy_decimals: 1
-        update_interval: 5s
+        # 16 Jul: relaxed 5s -> 30s. User prefers monitoring hv_battery_power
+        # (kept fast) over raw current for instant response.
+        update_interval: 30s
         pre_commands: ["ATSH7E5"]
 
+      # 16 Jul: relaxed 15s -> 30s (slow-changing thermal value).
       - key: 2_hv_battery_temp
         mode: "22"
         pid: "2A0B"
@@ -98,9 +103,10 @@ devices:
         device_class: temperature
         state_class: measurement
         accuracy_decimals: 1
-        update_interval: 15s
+        update_interval: 30s
         pre_commands: ["ATSH7E5"]
 
+      # 16 Jul: relaxed 30s -> 60s (slow-changing, low priority for user).
       - key: 2_hv_cell_voltage_max
         mode: "22"
         pid: "1E33"
@@ -108,7 +114,7 @@ devices:
         unit: "V"
         state_class: measurement
         accuracy_decimals: 3
-        update_interval: 30s
+        update_interval: 60s
         pre_commands: ["ATSH7E5"]
 
       - key: 2_hv_cell_voltage_min
@@ -118,9 +124,11 @@ devices:
         unit: "V"
         state_class: measurement
         accuracy_decimals: 3
-        update_interval: 30s
+        update_interval: 60s
         pre_commands: ["ATSH7E5"]
 
+      # 16 Jul: relaxed 10s -> 60s. Not yet testable while charging;
+      # low polling priority until validated.
       - key: 4_hv_charge_current_limit
         mode: "22"
         pid: "1E1B"
@@ -128,7 +136,7 @@ devices:
         unit: "A"
         state_class: measurement
         entity_category: diagnostic
-        update_interval: 10s
+        update_interval: 60s
         pre_commands: ["ATSH7E5"]
 
       - key: 4_hv_discharge_current_limit
@@ -138,7 +146,7 @@ devices:
         unit: "A"
         state_class: measurement
         entity_category: diagnostic
-        update_interval: 10s
+        update_interval: 60s
         pre_commands: ["ATSH7E5"]
 
       - key: 2_hv_isolation_resistance
@@ -194,6 +202,7 @@ devices:
         update_interval: 1s
         pre_commands: ["ATSH7E6"]
 
+      # 16 Jul: relaxed 15s -> 30s (slow-changing thermal value).
       - key: 2_motor_temp
         mode: "22"
         pid: "3E94"
@@ -202,9 +211,12 @@ devices:
         device_class: temperature
         state_class: measurement
         accuracy_decimals: 1
-        update_interval: 15s
+        update_interval: 30s
         pre_commands: ["ATSH7E6"]
 
+      # 16 Jul: relaxed 5s -> 60s. Confirmed to track hv_battery_voltage /
+      # ready-state transitions correctly, but no active use case for
+      # high resolution here.
       - key: 3_traction_dc_link_voltage
         mode: "22"
         pid: "3E93"
@@ -213,7 +225,7 @@ devices:
         device_class: voltage
         state_class: measurement
         accuracy_decimals: 1
-        update_interval: 5s
+        update_interval: 60s
         pre_commands: ["ATSH7E6"]
 
       - key: 3_accelerator_pedal
@@ -230,19 +242,16 @@ devices:
       # Steuergerät 01 — Motorelektronik / main ECU (header 7E0/7E8)
       # ============================================================
 
-      - key: 3_vehicle_speed
-        mode: "22"
-        pid: "F40D"
-        formula: "a"
-        unit: "km/h"
-        device_class: speed
-        state_class: measurement
-        update_interval: 1s
-        pre_commands: ["ATSH7E0"]
+      # 16 Jul: removed 3_vehicle_speed (mode-22, PID F40D). Redundant
+      # with 4_vehicle_speed_std (standard mode-01 PID 0D) — both tracked
+      # each other closely in live testing, no accuracy reason to keep
+      # both. Standard PID kept since it's the more universally-defined
+      # one; this frees a slot in the shared polling queue.
 
+      # 16 Jul: relaxed 30s -> 60s (very slow-changing accessory voltage).
       - key: 1_battery_12v_voltage
         preset: battery_voltage
-        update_interval: 30s
+        update_interval: 60s
         pre_commands: ["ATSH7DF"]
 
       # ============================================================
@@ -280,6 +289,7 @@ devices:
       # exact car model.
       # ============================================================
 
+      # 16 Jul: relaxed 15s -> 30s (slow-changing thermal values).
       - key: 2_hv_cell_temp_max
         mode: "22"
         pid: "1E0E"
@@ -288,7 +298,7 @@ devices:
         device_class: temperature
         state_class: measurement
         accuracy_decimals: 1
-        update_interval: 15s
+        update_interval: 30s
         pre_commands: ["ATSH7E5"]
 
       - key: 2_hv_cell_temp_min
@@ -299,7 +309,7 @@ devices:
         device_class: temperature
         state_class: measurement
         accuracy_decimals: 1
-        update_interval: 15s
+        update_interval: 30s
         pre_commands: ["ATSH7E5"]
 
       - key: 1_hv_battery_power
@@ -313,6 +323,7 @@ devices:
         update_interval: 1s
         pre_commands: ["ATSH7E0"]
 
+      # 16 Jul: relaxed 10s -> 30s, matching hv_battery_current treatment.
       - key: 4_hv_network_current
         mode: "22"
         pid: "1617"
@@ -321,9 +332,10 @@ devices:
         device_class: current
         state_class: measurement
         accuracy_decimals: 2
-        update_interval: 10s
+        update_interval: 30s
         pre_commands: ["ATSH7E0"]
 
+      # 16 Jul: relaxed 30s -> 60s (outdoor temp changes very slowly).
       - key: 2_ambient_temp
         mode: "22"
         pid: "F446"
@@ -332,9 +344,10 @@ devices:
         device_class: temperature
         state_class: measurement
         accuracy_decimals: 1
-        update_interval: 30s
+        update_interval: 60s
         pre_commands: ["ATSH7E0"]
 
+      # 16 Jul: relaxed 30s -> 60s.
       - key: 4_hv_battery_max_performance
         mode: "22"
         pid: "1502"
@@ -343,16 +356,9 @@ devices:
         device_class: power
         state_class: measurement
         accuracy_decimals: 2
-        update_interval: 30s
+        update_interval: 60s
         pre_commands: ["ATSH7E0"]
 
-      # Unit is a guess (W) — CSV doesn't specify one for this PID.
-      - key: 4_hv_battery_loss_power_UNCONFIRMED_UNIT
-        mode: "22"
-        pid: "188D"
-        formula: "a*256+b"
-        unit: "W"
-        device_class: power
-        state_class: measurement
-        update_interval: 10s
-        pre_commands: ["ATSH7E5"]
+      # 16 Jul: removed 4_hv_battery_loss_power_UNCONFIRMED_UNIT. Live
+      # testing showed it never returned anything but 0 W — combined with
+      # the already-unconfirmed unit guess, not worth the polling slot.
