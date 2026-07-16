@@ -52,6 +52,25 @@ devices:
         update_interval: 10s
         pre_commands: ["ATSH7E5"]
 
+      # MEDIUM CONFIDENCE: this targets the *displayed/dashboard* SOC
+      # (normalized to usable capacity, ~12% less than the gross SOC
+      # above), as opposed to hv_soc which is the raw BMS value. PID and
+      # header are confirmed from community docs, but the exact formula
+      # is NOT independently confirmed — it's a best-effort guess based
+      # on the same single-byte /2.55 pattern used by the other SOC PIDs
+      # on this car. Also: per community reports, this PID may only
+      # respond with ignition on, not necessarily while charging.
+      - key: hv_soc_display_UNCONFIRMED
+        mode: "22"
+        pid: "1164"
+        formula: "a/2.55"
+        unit: "%"
+        device_class: battery
+        state_class: measurement
+        accuracy_decimals: 1
+        update_interval: 10s
+        pre_commands: ["ATSH7E0"]
+
       - key: hv_battery_voltage
         mode: "22"
         pid: "1E3B"
@@ -66,7 +85,7 @@ devices:
       - key: hv_battery_current
         mode: "22"
         pid: "1E3D"
-        formula: "(a*256+b-2044)/4"
+        formula: "(a*256+b-2048)/10"
         unit: "A"
         device_class: current
         state_class: measurement
@@ -151,7 +170,7 @@ devices:
       - key: motor_torque
         mode: "22"
         pid: "3EE9"
-        formula: "(a*256+b)/16"      # SIGNED — see chat notes
+        formula: "(((a*256+b)+32768)%65536-32768)/16"
         unit: "Nm"
         state_class: measurement
         accuracy_decimals: 1
@@ -161,7 +180,7 @@ devices:
       - key: motor_power_electrical
         mode: "22"
         pid: "4656"
-        formula: "(a*256+b)/64"      # SIGNED — see chat notes
+        formula: "(((a*256+b)+32768)%65536-32768)*0.016"
         unit: "kW"
         state_class: measurement
         accuracy_decimals: 2
@@ -171,7 +190,7 @@ devices:
       - key: motor_power_mechanical
         mode: "22"
         pid: "4658"
-        formula: "(a*256+b)/64"      # SIGNED — see chat notes
+        formula: "(((a*256+b)+32768)%65536-32768)*0.016"
         unit: "kW"
         state_class: measurement
         accuracy_decimals: 2
@@ -263,3 +282,86 @@ devices:
         preset: speed
         update_interval: 1s
         pre_commands: ["ATSH7DF"]
+
+      # ============================================================
+      # New sensors, confirmed against community-vetted Car Scanner CSV
+      # (sharkcow/VW-e-UP-OBD-CAN-logs) — real CAN log analysis on this
+      # exact car model.
+      # ============================================================
+
+      - key: hv_cell_temp_max
+        mode: "22"
+        pid: "1E0E"
+        formula: "(a*256+b)/64"
+        unit: "°C"
+        device_class: temperature
+        state_class: measurement
+        accuracy_decimals: 1
+        update_interval: 15s
+        pre_commands: ["ATSH7E5"]
+
+      - key: hv_cell_temp_min
+        mode: "22"
+        pid: "1E0F"
+        formula: "(a*256+b)/64"
+        unit: "°C"
+        device_class: temperature
+        state_class: measurement
+        accuracy_decimals: 1
+        update_interval: 15s
+        pre_commands: ["ATSH7E5"]
+
+      - key: hv_battery_power
+        mode: "22"
+        pid: "1485"
+        formula: "(((a*256+b)+32768)%65536-32768)/250"
+        unit: "kW"
+        device_class: power
+        state_class: measurement
+        accuracy_decimals: 2
+        update_interval: 1s
+        pre_commands: ["ATSH7E0"]
+
+      - key: hv_network_current
+        mode: "22"
+        pid: "1617"
+        formula: "(((a*256+b)+32768)%65536-32768)/32"
+        unit: "A"
+        device_class: current
+        state_class: measurement
+        accuracy_decimals: 2
+        update_interval: 10s
+        pre_commands: ["ATSH7E0"]
+
+      - key: ambient_temp
+        mode: "22"
+        pid: "F446"
+        formula: "a/8"
+        unit: "°C"
+        device_class: temperature
+        state_class: measurement
+        accuracy_decimals: 1
+        update_interval: 30s
+        pre_commands: ["ATSH7E0"]
+
+      - key: hv_battery_max_performance
+        mode: "22"
+        pid: "1502"
+        formula: "(a*256+b)/250"
+        unit: "kW"
+        device_class: power
+        state_class: measurement
+        accuracy_decimals: 2
+        update_interval: 30s
+        pre_commands: ["ATSH7E0"]
+
+      # Unit is a guess (W) — CSV doesn't specify one for this PID.
+      - key: hv_battery_loss_power_UNCONFIRMED_UNIT
+        mode: "22"
+        pid: "188D"
+        formula: "a*256+b"
+        unit: "W"
+        device_class: power
+        state_class: measurement
+        update_interval: 10s
+        pre_commands: ["ATSH7E5"]
