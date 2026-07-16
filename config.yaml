@@ -224,7 +224,7 @@ devices:
         state_class: measurement
         accuracy_decimals: 1
         update_interval: 1s
-        pre_commands: ["ATSH7E6"]
+        pre_commands: ["ATSH7E0"]
 
       # ============================================================
       # Steuergerät 01 — Motorelektronik / main ECU (header 7E0/7E8)
