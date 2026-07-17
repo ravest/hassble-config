@@ -29,6 +29,17 @@ devices:
         update_interval: 2s
         pre_commands: ["ATAR", "ATSH7DF"]
         publish: { min_interval: 1s }
+        
+      - key: accelerator_pedal
+        mode: "22"
+        pid: "F449"
+        formula: "a/2.55"
+        unit: "%"
+        state_class: measurement
+        accuracy_decimals: 1
+        update_interval: 1s
+        pre_commands: ["ATAR", "ATSH7E0"]
+        publish: { min_interval: 1s }
 
       - key: hv_soc
         mode: "22"
