@@ -177,6 +177,8 @@ templates:
           update_interval: 5s
           pre_commands: ["ATSH7E6"]
 
+        # 17 Jul: header corrected 7E6 -> 7E0, confirmed via OVMS source
+        # (VWUP_MOT_ELEC_TX = 0x7E0).
         - key: 3_accelerator_pedal
           mode: "22"
           pid: "F449"
@@ -185,7 +187,7 @@ templates:
           state_class: measurement
           accuracy_decimals: 1
           update_interval: 1s
-          pre_commands: ["ATSH7E6"]
+          pre_commands: ["ATSH7E0"]
 
   - id: vw_eup_misc
     name: "VW e-up! Speed / 12V / Range / Odometer"
@@ -225,5 +227,26 @@ templates:
         # the shared polling queue (non-standard header/CRA pattern).
         # See config.yaml comments for details.
 
-        # Odometer removed — no working PID found for this car (see
-        # config.yaml comments for details).
+        # Odometer (PID 02BD, header 7E5) removed from the active config —
+        # NOT because the formula was wrong (confirmed correct via OVMS
+        # source: FromUint24 offset 1 = bytes b,c,d, matching what we
+        # already had), but because the multi-frame ISO-TP response
+        # consistently failed to reassemble on this adapter/app
+        # combination across three separate attempts. A working
+        # single-frame replacement (PID 2203, header 714/77E) is used
+        # instead — see config.yaml.
+
+        # 17 Jul: NEW — real dashboard-matching SOC, confirmed via OVMS
+        # (Open Vehicle Monitoring System) production source. Works
+        # during charging too, per OVMS's own code comment — likely the
+        # best SOC source for charge-limiting use cases (e.g. EVCC).
+        - key: 1_hv_soc_dashboard
+          mode: "22"
+          pid: "1DD0"
+          formula: "a/2"
+          unit: "%"
+          device_class: battery
+          state_class: measurement
+          accuracy_decimals: 1
+          update_interval: 30s
+          pre_commands: ["ATSH765", "ATCRA7CF"]
