@@ -1,18 +1,15 @@
-# HassBle Configuration File — MINIMAL "trip computer" variant
+# HassBle Configuration File — COMBINED comprehensive config
 #
-# 16 Jul: replaced the full 25-sensor config with a focused set: SOC,
-# odometer, trip consumption, distance, plus power+speed (needed to
-# derive instant consumption in Home Assistant — see notes below).
-# Full previous config backed up as config-full-backup.yaml in this repo
-# for reference / manual restore later (the app only ever reads whatever
-# is literally named config.yaml — it can't run two configs at once).
-#
-# IMPORTANT: "instant consumption" and "time traveled" are NOT included
-# here as OBD sensors — no PID exists for either on this car, confirmed
-# via exhaustive search. Both must be built as Home Assistant template
-# sensor / timer, using the hv_battery_power and vehicle_speed sensors
-# below as inputs. See the separate HA snippet provided alongside this
-# file.
+# 17 Jul: merged the full 25-sensor config and the minimal 6-sensor trip
+# computer config into one. FAST (1s) tier reserved for: speed, motor
+# rpm/torque/power (electrical+mechanical), accelerator pedal, and
+# hv_battery_power — everything else runs at 60s. Extensively
+# cross-checked and corrected against OVMS (Open Vehicle Monitoring
+# System) production source code — a mature, actively-maintained
+# open-source project with a dedicated VW e-up! driver. Many formulas
+# below are now independently confirmed by that source rather than
+# community wiki guesses; corrections and new additions are flagged
+# inline with "OVMS confirmed" / "OVMS NEW" tags.
 
 version: 1
 
@@ -41,8 +38,108 @@ devices:
     sensors:
 
       # ============================================================
-      # SOC — confirmed reliable throughout prior testing.
+      # FAST TIER (1s) — instant/continuous values
       # ============================================================
+
+      - key: vehicle_speed_std
+        preset: speed
+        update_interval: 1s
+        pre_commands: ["ATSH7DF"]
+        publish: { min_interval: 1s }
+
+      - key: accelerator_pedal
+        mode: "22"
+        pid: "F449"
+        formula: "a/2.55"
+        unit: "%"
+        state_class: measurement
+        accuracy_decimals: 1
+        update_interval: 1s
+        pre_commands: ["ATSH7E0"]
+        publish: { min_interval: 1s }
+
+      # OVMS confirmed: VWUP_BAT_MGMT header/PID match ours exactly, but
+      # OVMS derives power from voltage*current rather than reading PID
+      # 1485 directly — that PID was never independently corroborated.
+      # Kept since it's shown plausible live values.
+      - key: hv_battery_power
+        mode: "22"
+        pid: "1485"
+        formula: "(((a*256+b)+32768)%65536-32768)/250"
+        unit: "kW"
+        device_class: power
+        state_class: measurement
+        accuracy_decimals: 2
+        update_interval: 1s
+        pre_commands: ["ATSH7E0"]
+        publish: { min_interval: 1s }
+
+      - key: motor_rpm
+        mode: "22"
+        pid: "4659"
+        formula: "a*256+b"
+        unit: "rpm"
+        state_class: measurement
+        update_interval: 1s
+        pre_commands: ["ATSH7E6"]
+        publish: { min_interval: 1s }
+
+      - key: motor_torque
+        mode: "22"
+        pid: "3EE9"
+        formula: "(((a*256+b)+32768)%65536-32768)/16"
+        unit: "Nm"
+        state_class: measurement
+        accuracy_decimals: 1
+        update_interval: 1s
+        pre_commands: ["ATSH7E6"]
+        publish: { min_interval: 1s }
+
+      # Electrical power = input to motor/inverter from the battery.
+      # Mechanical power = actual output at the motor shaft. The gap
+      # between them is inverter+motor losses (heat) — watching both is
+      # a live drivetrain-efficiency indicator.
+      - key: motor_power_electrical
+        mode: "22"
+        pid: "4656"
+        formula: "(((a*256+b)+32768)%65536-32768)*0.016"
+        unit: "kW"
+        state_class: measurement
+        accuracy_decimals: 2
+        update_interval: 1s
+        pre_commands: ["ATSH7E6"]
+        publish: { min_interval: 1s }
+
+      - key: motor_power_mechanical
+        mode: "22"
+        pid: "4658"
+        formula: "(((a*256+b)+32768)%65536-32768)*0.016"
+        unit: "kW"
+        state_class: measurement
+        accuracy_decimals: 2
+        update_interval: 1s
+        pre_commands: ["ATSH7E6"]
+        publish: { min_interval: 1s }
+
+      # OVMS NEW: alternate electrical power reading, different PID/ECU
+      # (VWUP_MOT_ELEC_POWER_MOT, "inverter output/motor input power")
+      # than motor_power_electrical above. Kept as a cross-check, not a
+      # replacement — compare the two once live.
+      - key: motor_power_electrical_alt
+        mode: "22"
+        pid: "147E"
+        formula: "(((a*256+b)+32768)%65536-32768)/250"
+        unit: "kW"
+        state_class: measurement
+        accuracy_decimals: 2
+        update_interval: 1s
+        pre_commands: ["ATSH7E0"]
+        publish: { min_interval: 1s }
+
+      # ============================================================
+      # Steuergerät 8C — Hybrid-Batteriemanagement (header 7E5/7ED)
+      # ============================================================
+
       - key: hv_soc
         mode: "22"
         pid: "028C"
@@ -54,49 +151,304 @@ devices:
         update_interval: 60s
         pre_commands: ["ATSH7E5"]
 
+      # OVMS confirmed exact match: value/4.0
+      - key: hv_battery_voltage
+        mode: "22"
+        pid: "1E3B"
+        formula: "(a*256+b)/4"
+        unit: "V"
+        device_class: voltage
+        state_class: measurement
+        accuracy_decimals: 1
+        update_interval: 60s
+        pre_commands: ["ATSH7E5"]
+
+      # 17 Jul: REVERTED to original offset/divisor (2044, /4) — OVMS's
+      # production formula is exactly this (before their sign flip,
+      # which we skip to preserve our existing negative=discharge
+      # convention, matching what the user has already been observing).
+      # The earlier "CSV correction" (2048, /10) was WRONG — reverted.
+      - key: hv_battery_current
+        mode: "22"
+        pid: "1E3D"
+        formula: "(a*256+b-2044)/4"
+        unit: "A"
+        device_class: current
+        state_class: measurement
+        accuracy_decimals: 1
+        update_interval: 60s
+        pre_commands: ["ATSH7E5"]
+
+      # 17 Jul: fixed to proper signed 16-bit decode. OVMS uses FromInt16
+      # (signed) with the same /64 scale we already had — we were
+      # treating it as unsigned this whole time (same bug class as the
+      # power sensors fixed earlier; battery temp just never went
+      # negative enough in testing to expose it).
+      - key: hv_battery_temp
+        mode: "22"
+        pid: "2A0B"
+        formula: "(((a*256+b)+32768)%65536-32768)/64"
+        unit: "°C"
+        device_class: temperature
+        state_class: measurement
+        accuracy_decimals: 1
+        update_interval: 60s
+        pre_commands: ["ATSH7E5"]
+
+      # OVMS confirmed exact match: value/4096.0
+      - key: hv_cell_voltage_max
+        mode: "22"
+        pid: "1E33"
+        formula: "(a*256+b)/4096"
+        unit: "V"
+        state_class: measurement
+        accuracy_decimals: 3
+        update_interval: 60s
+        pre_commands: ["ATSH7E5"]
+
+      - key: hv_cell_voltage_min
+        mode: "22"
+        pid: "1E34"
+        formula: "(a*256+b)/4096"
+        unit: "V"
+        state_class: measurement
+        accuracy_decimals: 3
+        update_interval: 60s
+        pre_commands: ["ATSH7E5"]
+
+      # OVMS confirmed exact PID match (VWUP_BAT_MGMT_TEMP_MAX/MIN)
+      - key: hv_cell_temp_max
+        mode: "22"
+        pid: "1E0E"
+        formula: "(a*256+b)/64"
+        unit: "°C"
+        device_class: temperature
+        state_class: measurement
+        accuracy_decimals: 1
+        update_interval: 60s
+        pre_commands: ["ATSH7E5"]
+
+      - key: hv_cell_temp_min
+        mode: "22"
+        pid: "1E0F"
+        formula: "(a*256+b)/64"
+        unit: "°C"
+        device_class: temperature
+        state_class: measurement
+        accuracy_decimals: 1
+        update_interval: 60s
+        pre_commands: ["ATSH7E5"]
+
+      - key: hv_charge_current_limit
+        mode: "22"
+        pid: "1E1B"
+        formula: "a"
+        unit: "A"
+        state_class: measurement
+        entity_category: diagnostic
+        update_interval: 60s
+        pre_commands: ["ATSH7E5"]
+
+      - key: hv_discharge_current_limit
+        mode: "22"
+        pid: "1E1C"
+        formula: "a"
+        unit: "A"
+        state_class: measurement
+        entity_category: diagnostic
+        update_interval: 60s
+        pre_commands: ["ATSH7E5"]
+
+      - key: hv_isolation_resistance
+        mode: "22"
+        pid: "1E17"
+        formula: "(a*256+b)*10"
+        unit: "kΩ"
+        state_class: measurement
+        entity_category: diagnostic
+        update_interval: 60s
+        pre_commands: ["ATSH7E5"]
+
       # ============================================================
-      # Supporting sensors for HA-side instant consumption calc
-      # (power ÷ speed). Faster interval per user request — instant
-      # consumption is the one value meant to feel "live".
+      # Steuergerät 51 — Elektroantrieb / drive motor (header 7E6/7EE)
       # ============================================================
 
-      - key: hv_battery_power
+      # OVMS confirmed exact PID match (VWUP_ELD_TEMP_MOT)
+      - key: motor_temp
         mode: "22"
-        pid: "1485"
-        formula: "(((a*256+b)+32768)%65536-32768)/250"
+        pid: "3E94"
+        formula: "(a*256+b)/64"
+        unit: "°C"
+        device_class: temperature
+        state_class: measurement
+        accuracy_decimals: 1
+        update_interval: 60s
+        pre_commands: ["ATSH7E6"]
+
+      - key: traction_dc_link_voltage
+        mode: "22"
+        pid: "3E93"
+        formula: "(a*256+b)/32"
+        unit: "V"
+        device_class: voltage
+        state_class: measurement
+        accuracy_decimals: 1
+        update_interval: 60s
+        pre_commands: ["ATSH7E6"]
+
+      # OVMS NEW: 12V system output current from the DCDC converter
+      # itself (different source than the standard-PID 12V voltage
+      # below — this is the actual converter's own telemetry).
+      - key: dcdc_12v_current
+        mode: "22"
+        pid: "465B"
+        formula: "(a*256+b)/16"
+        unit: "A"
+        device_class: current
+        state_class: measurement
+        accuracy_decimals: 2
+        update_interval: 60s
+        pre_commands: ["ATSH7E6"]
+
+      # OVMS NEW: more precise 12V voltage direct from the DCDC
+      # converter, vs. the standard OBD PID version below.
+      - key: dcdc_12v_voltage_precise
+        mode: "22"
+        pid: "465C"
+        formula: "(a*256+b)/512"
+        unit: "V"
+        device_class: voltage
+        state_class: measurement
+        accuracy_decimals: 3
+        update_interval: 60s
+        pre_commands: ["ATSH7E6"]
+
+      # ============================================================
+      # Steuergerät 01 — Motorelektronik / main ECU (header 7E0/7E8)
+      # ============================================================
+
+      - key: battery_12v_voltage
+        preset: battery_voltage
+        update_interval: 60s
+        pre_commands: ["ATSH7DF"]
+
+      # OVMS confirmed exact match: value - 40.0 (independently confirmed
+      # twice now — our own live calibration AND OVMS source).
+      - key: ambient_temp
+        mode: "22"
+        pid: "F446"
+        formula: "a-40"
+        unit: "°C"
+        device_class: temperature
+        state_class: measurement
+        accuracy_decimals: 1
+        update_interval: 60s
+        pre_commands: ["ATSH7E0"]
+
+      - key: hv_network_current
+        mode: "22"
+        pid: "1617"
+        formula: "(((a*256+b)+32768)%65536-32768)/32"
+        unit: "A"
+        device_class: current
+        state_class: measurement
+        accuracy_decimals: 2
+        update_interval: 60s
+        pre_commands: ["ATSH7E0"]
+
+      - key: hv_battery_max_performance
+        mode: "22"
+        pid: "1502"
+        formula: "(a*256+b)/250"
         unit: "kW"
         device_class: power
         state_class: measurement
         accuracy_decimals: 2
-        update_interval: 5s
+        update_interval: 60s
         pre_commands: ["ATSH7E0"]
 
-      - key: vehicle_speed_std
-        preset: speed
-        update_interval: 5s
-        pre_commands: ["ATSH7DF"]
-        publish: { min_interval: 5s }
+      # OVMS NEW: real-time accelerometer reading (m/s²) from the car
+      # itself — positive = accelerating, negative = braking/decel.
+      - key: vehicle_acceleration
+        mode: "22"
+        pid: "12B0"
+        formula: "(((a*256+b)+32768)%65536-32768)/1000"
+        unit: "m/s²"
+        state_class: measurement
+        accuracy_decimals: 3
+        update_interval: 60s
+        pre_commands: ["ATSH7E0"]
+
+      # OVMS NEW: alternate DCDC converter temperature, different
+      # ECU/PID than an earlier attempt (3EB5 @ 7E6) that returned no
+      # data. This one uses a Kelvin-to-Celsius conversion internally.
+      - key: dcdc_temp_alt
+        mode: "22"
+        pid: "116F"
+        formula: "(a*256+b)/10-273.1"
+        unit: "°C"
+        device_class: temperature
+        state_class: measurement
+        accuracy_decimals: 1
+        update_interval: 60s
+        pre_commands: ["ATSH7E0"]
+
+      # OVMS NEW: car state enum. Raw values: 1/2=booting, 3=ready,
+      # 4=ignition on, 7=switched off. Not decoded to text here — just
+      # read the raw number in HA and map it if useful.
+      - key: car_state
+        mode: "22"
+        pid: "14D9"
+        formula: "a"
+        state_class: measurement
+        entity_category: diagnostic
+        update_interval: 60s
+        pre_commands: ["ATSH7E0"]
+
+      # OVMS NEW: gear position (Gen2 cars only — may return no data on
+      # Gen1). Raw values: -1=reverse, 0=neutral, 1=forward.
+      - key: gear_position
+        mode: "22"
+        pid: "14CB"
+        formula: "a"
+        state_class: measurement
+        entity_category: diagnostic
+        update_interval: 60s
+        pre_commands: ["ATSH7E0"]
+
+      # OVMS NEW: drive mode. Raw values: 1=Standard, 2=Eco, 3=Eco+.
+      - key: drive_mode
+        mode: "22"
+        pid: "1616"
+        formula: "a"
+        state_class: measurement
+        entity_category: diagnostic
+        update_interval: 60s
+        pre_commands: ["ATSH7E0"]
 
       # ============================================================
-      # Trip / average consumption — the trip computer's own value,
-      # confirmed documented (GoingElectric SG17 wiki). RISK: lives on
-      # the same header (714/77E) that caused estimated_range to stall
-      # the entire polling queue previously. Watch Logs closely after
-      # enabling — pull this sensor immediately if [LINK] Polling gaps
-      # reappear, same failure signature as before.
+      # Steuergerät 17 — Kombiinstrument / cluster (header 714/77E)
       # ============================================================
 
-      # 17 Jul: reverted /5 back to /10 — was set but never pushed live.
-      # The "/5" correction was based on
-      # comparing our old /10 reading (12.6) against ONE dashboard value
-      # without realizing the car has TWO separate trip counters (Trip 1:
-      # 30-40, Trip 2: 11). Our old /10 value is actually much closer to
-      # Trip 2 (11) than /5 would be (~25). Also: OVMS's own source code
-      # has NO direct consumption PID at all — they derive it from
-      # energy/distance instead — so this PID was never corroborated by
-      # that source either, only the GoingElectric wiki. Genuinely
-      # unconfirmed which (if either) trip counter this PID represents.
-      # Renamed with _UNCONFIRMED suffix per project convention.
+      # OVMS confirmed exact PID match (VWUP_MFD_ODOMETER). Formula
+      # itself uses the multi-frame PID 02BD in OVMS's own driver, but
+      # that consistently failed to reassemble on this adapter across
+      # three attempts — this single-frame alternative (2203) works
+      # reliably instead, confirmed via real dashboard comparison
+      # (7km discrepancy is expected: this PID has 10km resolution).
+      - key: odometer
+        mode: "22"
+        pid: "2203"
+        formula: "(a*256+b)*10"
+        unit: "km"
+        state_class: total_increasing
+        update_interval: 60s
+        pre_commands: ["ATSH714", "ATCRA77E"]
+
+      # UNCONFIRMED — see extensive notes from 17 Jul testing. Real-world
+      # comparison against the dashboard was ambiguous (car has TWO trip
+      # counters, we only checked against one). OVMS itself has no
+      # direct consumption PID — they derive it from energy/distance.
       - key: trip_avg_consumption_UNCONFIRMED
         mode: "22"
         pid: "22E3"
@@ -107,17 +459,39 @@ devices:
         update_interval: 60s
         pre_commands: ["ATSH714", "ATCRA77E"]
 
-      # 17 Jul: NEW — the real dashboard-matching SOC, confirmed via OVMS
-      # (Open Vehicle Monitoring System) production source code. PID
-      # 0x1DD0 lives on a previously-unused ECU (VWUP_CHG_MGMT, "HV
-      # charge management"). OVMS's own code comment: "This SOC matches
-      # the instrument cluster SOC and is available while driving and
-      # while charging, so we use this as the standard user SOC." This
-      # is likely the best SOC source for EVCC charge-limiting, since it
-      # works specifically during charging (unlike the other SOC PID we
-      # tried and disproved, 0x1164, which OVMS's own comments say only
-      # "loosely correlates" to the dashboard and updates while driving
-      # only).
+      # OVMS NEW: usable battery capacity estimate (kWh) — a
+      # capacity/SOH-adjacent metric, useful for tracking long-term
+      # battery degradation over months/years.
+      - key: usable_battery_capacity
+        mode: "22"
+        pid: "22E4"
+        formula: "(a*256+b)/10"
+        unit: "kWh"
+        device_class: energy_storage
+        state_class: measurement
+        accuracy_decimals: 1
+        update_interval: 60s
+        pre_commands: ["ATSH714", "ATCRA77E"]
+
+      # OVMS NEW: distance remaining until next scheduled service.
+      - key: service_range_remaining
+        mode: "22"
+        pid: "2260"
+        formula: "a*256+b"
+        unit: "km"
+        state_class: measurement
+        entity_category: diagnostic
+        update_interval: 60s
+        pre_commands: ["ATSH714", "ATCRA77E"]
+
+      # ============================================================
+      # Steuergerät BD — HV-Ladesteuerung / charge management
+      # (header 765/7CF) — brand new ECU, not used anywhere before.
+      # ============================================================
+
+      # OVMS NEW & confirmed: the real dashboard-matching SOC. Works
+      # during charging too — likely the best source for EVCC-style
+      # charge-limiting use cases.
       - key: hv_soc_dashboard
         mode: "22"
         pid: "1DD0"
@@ -126,28 +500,88 @@ devices:
         device_class: battery
         state_class: measurement
         accuracy_decimals: 1
-        update_interval: 30s
+        update_interval: 60s
+        pre_commands: ["ATSH765", "ATCRA7CF"]
+
+      # OVMS NEW: configured minimum/maximum SOC charge limits (the
+      # settings, not the live SOC) — useful to verify EVCC's own
+      # charge-limit setting actually took effect on the car.
+      - key: charge_soc_limit_min
+        mode: "22"
+        pid: "1DD1"
+        formula: "a"
+        unit: "%"
+        state_class: measurement
+        entity_category: diagnostic
+        update_interval: 60s
+        pre_commands: ["ATSH765", "ATCRA7CF"]
+
+      - key: charge_soc_limit_max
+        mode: "22"
+        pid: "1DD1"
+        formula: "b"
+        unit: "%"
+        state_class: measurement
+        entity_category: diagnostic
+        update_interval: 60s
+        pre_commands: ["ATSH765", "ATCRA7CF"]
+
+      # OVMS NEW: minutes remaining until full charge. Raw value 127
+      # means "invalid, keep last known" per OVMS — may occasionally
+      # show a stale number right after charge start/stop.
+      - key: charge_time_remaining
+        mode: "22"
+        pid: "1DE4"
+        formula: "a*5"
+        unit: "min"
+        state_class: measurement
+        update_interval: 60s
         pre_commands: ["ATSH765", "ATCRA7CF"]
 
       # ============================================================
-      # Odometer ("Wegstrecke" PID, confirmed 17 Jul). Originally added
-      # under the name distance_traveled — live testing showed a value
-      # of 66,620.0 km, far too large for a trip counter, confirming
-      # this is actually the real lifetime odometer despite the
-      # misleading German label. Renamed accordingly. Still shares the
-      # 714/77E header risk, but has now worked reliably across two
-      # separate sessions with no stall.
-      #
-      # The old multi-frame odometer attempt (PID 02BD, header 7E5) has
-      # now failed on all THREE attempts across this whole project —
-      # removed for good. This PID above replaces it entirely.
+      # Steuergerät C6 — HV-Ladegerät / HV charger (header 744/7AE) —
+      # another brand new ECU. Only meaningful while actively charging.
       # ============================================================
 
-      - key: odometer
+      # OVMS NEW: charger efficiency. CAVEAT: formula only valid for
+      # raw byte <= 250 (giving <=100%); OVMS treats anything above
+      # that as "not charging right now" and reports 0 instead — our
+      # simple formula engine can't do that conditional, so expect
+      # nonsense/very high numbers whenever the car isn't actively
+      # charging. Only trust this one during an active charge session.
+      - key: charger_efficiency
         mode: "22"
-        pid: "2203"
-        formula: "(a*256+b)*10"
-        unit: "km"
-        state_class: total_increasing
+        pid: "15D6"
+        formula: "a/10+75"
+        unit: "%"
+        state_class: measurement
         update_interval: 60s
-        pre_commands: ["ATSH714", "ATCRA77E"]
+        pre_commands: ["ATSH744", "ATCRA7AE"]
+
+      # OVMS NEW: charger power loss (heat dissipated during charging).
+      - key: charger_power_loss
+        mode: "22"
+        pid: "15E1"
+        formula: "a*20/1000"
+        unit: "kW"
+        device_class: power
+        state_class: measurement
+        accuracy_decimals: 3
+        update_interval: 60s
+        pre_commands: ["ATSH744", "ATCRA7AE"]
+
+      # ============================================================
+      # NOT INCLUDED — considered but skipped, high risk of repeating
+      # the odometer/estimated_range multi-frame stall problem:
+      #   - TPMS (tire pressures), PID 1821 @ 713/77D — confirmed
+      #     multi-tire block read starting at byte offset 43 in OVMS
+      #     source, near-certain multi-frame response.
+      #   - Battery coulomb/energy counters, PID 1E32 @ 7E5 — packs
+      #     multiple 32-bit values in one response, likely multi-frame.
+      #   - Battery SOH/capacity history, PID 74CB @ 7E5 — PID address
+      #     pattern matches other confirmed long diagnostic-history
+      #     reads in OVMS source; unconfirmed but suspicious.
+      #   - Five separate coolant-loop temperature sensors under
+      #     VWUP_MOT_ELEC — very niche diagnostic value, skipped for
+      #     reasonable scope, not a technical risk.
+      # ============================================================
