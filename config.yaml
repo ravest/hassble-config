@@ -400,7 +400,6 @@ devices:
         mode: "22"
         pid: "14D9"
         formula: "a"
-        state_class: measurement
         entity_category: diagnostic
         update_interval: 60s
         pre_commands: ["ATSH7E0"]
@@ -411,7 +410,6 @@ devices:
         mode: "22"
         pid: "14CB"
         formula: "a"
-        state_class: measurement
         entity_category: diagnostic
         update_interval: 60s
         pre_commands: ["ATSH7E0"]
@@ -421,7 +419,6 @@ devices:
         mode: "22"
         pid: "1616"
         formula: "a"
-        state_class: measurement
         entity_category: diagnostic
         update_interval: 60s
         pre_commands: ["ATSH7E0"]
