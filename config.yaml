@@ -44,7 +44,8 @@ devices:
       - key: vehicle_speed_std
         preset: speed
         update_interval: 1s
-        pre_commands: ["ATSH7DF"]
+        # pre_commands: ["ATSH7DF"]
+        pre_commands: ["ATCRA", "ATSH7DF"]
         publish: { min_interval: 1s }
 
       - key: accelerator_pedal
