@@ -376,7 +376,7 @@ devices:
         unit: "m/s²"
         state_class: measurement
         accuracy_decimals: 3
-        update_interval: 60s
+        update_interval: 1s
         pre_commands: ["ATSH7E0"]
 
       # OVMS NEW: alternate DCDC converter temperature, different
