@@ -1,0 +1,65 @@
+version: 1
+
+defaults:
+  publish:
+    on_change_only: false
+    min_interval: 1s
+
+devices:
+  - id: eup_atar_test
+    name: "VW e-up! OBD ATAR test"
+    source: obd
+    obd:
+      mac: "22:D0:20:17:9F:9C"
+      service_uuid: "FFF0"
+      tx_char_uuid: "FFF2"
+      rx_char_uuid: "FFF1"
+      tx_delay: 100ms
+      init_commands:
+        - "ATZ"
+        - "ATE0"
+        - "ATL0"
+        - "ATS0"
+        - "ATH0"
+        - "ATSP6"
+        - "ATAR"
+    sensors:
+      - key: vehicle_speed_std
+        preset: speed
+        update_interval: 2s
+        pre_commands: ["ATAR", "ATSH7DF"]
+        publish: { min_interval: 1s }
+
+      - key: hv_soc
+        mode: "22"
+        pid: "028C"
+        formula: "a/2.55"
+        unit: "%"
+        device_class: battery
+        state_class: measurement
+        accuracy_decimals: 1
+        update_interval: 5s
+        pre_commands: ["ATAR", "ATSH7E5"]
+        publish: { min_interval: 10s }
+
+      - key: odometer
+        mode: "22"
+        pid: "2203"
+        formula: "(a*256+b)*10"
+        unit: "km"
+        state_class: total_increasing
+        update_interval: 15s
+        pre_commands: ["ATSH714", "ATCRA77E"]
+        publish: { min_interval: 10s }
+
+      - key: hv_soc_dashboard
+        mode: "22"
+        pid: "1DD0"
+        formula: "a/2"
+        unit: "%"
+        device_class: battery
+        state_class: measurement
+        accuracy_decimals: 1
+        update_interval: 20s
+        pre_commands: ["ATSH765", "ATCRA7CF"]
+        publish: { min_interval: 10s }
