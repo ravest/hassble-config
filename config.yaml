@@ -1,29 +1,32 @@
-# HassBle Configuration File
+# HassBle Configuration File — MINIMAL "trip computer" variant
 #
-# Host config.yaml and templates.yaml in a Git repository (e.g., GitHub).
-# In the HassBle app: enter owner/repo and branch (e.g. eigger/hassble-config, main).
-# The app loads config.yaml for the gateway and templates.yaml for Import template.
+# 16 Jul: replaced the full 25-sensor config with a focused set: SOC,
+# odometer, trip consumption, distance, plus power+speed (needed to
+# derive instant consumption in Home Assistant — see notes below).
+# Full previous config backed up as config-full-backup.yaml in this repo
+# for reference / manual restore later (the app only ever reads whatever
+# is literally named config.yaml — it can't run two configs at once).
 #
-# Do NOT put any Home Assistant credentials (URL/Token) in this file. Enter them in the app.
+# IMPORTANT: "instant consumption" and "time traveled" are NOT included
+# here as OBD sensors — no PID exists for either on this car, confirmed
+# via exhaustive search. Both must be built as Home Assistant template
+# sensor / timer, using the hv_battery_power and vehicle_speed sensors
+# below as inputs. See the separate HA snippet provided alongside this
+# file.
 
 version: 1
 
 defaults:
   publish:
     on_change_only: true
-    min_interval: 10s
+    min_interval: 60s
 
 devices:
-  # ──────────────────────────────────────────────────────────────
-  # VW e-up! via ELM327 BLE (KONNWEI clone)
-  # ──────────────────────────────────────────────────────────────
   - id: eup_all
     name: "VW e-up! OBD"
     source: obd
     obd:
-      mac: "22:D0:20:17:9F:9C"     # KONNWEI ELM327 clone. Remove this line
-                                    # and bind the MAC in the app's Sensors
-                                    # tab instead, if you prefer.
+      mac: "22:D0:20:17:9F:9C"
       service_uuid: "FFF0"
       tx_char_uuid: "FFF2"
       rx_char_uuid: "FFF1"
@@ -34,16 +37,13 @@ devices:
         - "ATL0"
         - "ATS0"
         - "ATH0"
-        - "ATSP6"                  # ISO 15765-4 CAN 11bit/500kbps — used by e-up modules below
+        - "ATSP6"
     sensors:
 
       # ============================================================
-      # Steuergerät 8C — Hybrid-Batteriemanagement (header 7E5/7ED)
+      # SOC — confirmed reliable throughout prior testing.
       # ============================================================
-
-      # 16 Jul: relaxed 10s -> 30s. SOC changes slowly; frees polling
-      # bandwidth for fast-changing sensors sharing the same BLE link.
-      - key: 1_hv_soc
+      - key: hv_soc
         mode: "22"
         pid: "028C"
         formula: "a/2.55"
@@ -51,282 +51,16 @@ devices:
         device_class: battery
         state_class: measurement
         accuracy_decimals: 1
-        update_interval: 30s
-        pre_commands: ["ATSH7E5"]
-
-      # MEDIUM CONFIDENCE — NOW DISPROVEN BY LIVE TESTING (16 Jul): read
-      # 11.8% while hv_soc read 74.5% — not a plausible normalized-SOC
-      # relationship (should be somewhat higher than gross, not 1/6th of
-      # it). Either the PID or the formula is wrong. Kept disabled by
-      # default; consider removing entirely if not worth further guessing.
-      - key: 4_hv_soc_display_UNCONFIRMED
-        mode: "22"
-        pid: "1164"
-        formula: "a/2.55"
-        unit: "%"
-        device_class: battery
-        state_class: measurement
-        accuracy_decimals: 1
-        update_interval: 10s
-        pre_commands: ["ATSH7E0"]
-
-      - key: 1_hv_battery_voltage
-        mode: "22"
-        pid: "1E3B"
-        formula: "(a*256+b)/4"
-        unit: "V"
-        device_class: voltage
-        state_class: measurement
-        accuracy_decimals: 1
-        update_interval: 5s
-        pre_commands: ["ATSH7E5"]
-
-      - key: 1_hv_battery_current
-        mode: "22"
-        pid: "1E3D"
-        formula: "(a*256+b-2048)/10"
-        unit: "A"
-        device_class: current
-        state_class: measurement
-        accuracy_decimals: 1
-        # 16 Jul: relaxed 5s -> 30s. User prefers monitoring hv_battery_power
-        # (kept fast) over raw current for instant response.
-        update_interval: 30s
-        pre_commands: ["ATSH7E5"]
-
-      # 16 Jul: relaxed 15s -> 30s (slow-changing thermal value).
-      - key: 2_hv_battery_temp
-        mode: "22"
-        pid: "2A0B"
-        formula: "(a*256+b)/64"      # SIGNED 16-bit — verify sign handling, see chat notes
-        unit: "°C"
-        device_class: temperature
-        state_class: measurement
-        accuracy_decimals: 1
-        update_interval: 30s
-        pre_commands: ["ATSH7E5"]
-
-      # 16 Jul: relaxed 30s -> 60s (slow-changing, low priority for user).
-      - key: 2_hv_cell_voltage_max
-        mode: "22"
-        pid: "1E33"
-        formula: "(a*256+b)/4096"
-        unit: "V"
-        state_class: measurement
-        accuracy_decimals: 3
-        update_interval: 60s
-        pre_commands: ["ATSH7E5"]
-
-      - key: 2_hv_cell_voltage_min
-        mode: "22"
-        pid: "1E34"
-        formula: "(a*256+b)/4096"
-        unit: "V"
-        state_class: measurement
-        accuracy_decimals: 3
-        update_interval: 60s
-        pre_commands: ["ATSH7E5"]
-
-      # 16 Jul: relaxed 10s -> 60s. Not yet testable while charging;
-      # low polling priority until validated.
-      - key: 4_hv_charge_current_limit
-        mode: "22"
-        pid: "1E1B"
-        formula: "a"
-        unit: "A"
-        state_class: measurement
-        entity_category: diagnostic
-        update_interval: 60s
-        pre_commands: ["ATSH7E5"]
-
-      - key: 4_hv_discharge_current_limit
-        mode: "22"
-        pid: "1E1C"
-        formula: "a"
-        unit: "A"
-        state_class: measurement
-        entity_category: diagnostic
-        update_interval: 60s
-        pre_commands: ["ATSH7E5"]
-
-      - key: 2_hv_isolation_resistance
-        mode: "22"
-        pid: "1E17"
-        formula: "(a*256+b)*10"
-        unit: "kΩ"
-        state_class: measurement
-        entity_category: diagnostic
         update_interval: 60s
         pre_commands: ["ATSH7E5"]
 
       # ============================================================
-      # Steuergerät 51 — Elektroantrieb / Drive motor (header 7E6/7EE)
+      # Supporting sensors for HA-side instant consumption calc
+      # (power ÷ speed). Faster interval per user request — instant
+      # consumption is the one value meant to feel "live".
       # ============================================================
 
-      # 16 Jul: added publish.min_interval=1s override — matches the 1s
-      # poll rate so HA sees updates near-live instead of capped at the
-      # global 10s default. on_change_only still applies (no spam while
-      # value is steady).
-      - key: 3_motor_rpm
-        mode: "22"
-        pid: "4659"
-        formula: "a*256+b"
-        unit: "rpm"
-        state_class: measurement
-        update_interval: 1s
-        pre_commands: ["ATSH7E6"]
-        publish: { min_interval: 1s }
-
-      - key: 3_motor_torque
-        mode: "22"
-        pid: "3EE9"
-        formula: "(((a*256+b)+32768)%65536-32768)/16"
-        unit: "Nm"
-        state_class: measurement
-        accuracy_decimals: 1
-        update_interval: 1s
-        pre_commands: ["ATSH7E6"]
-        publish: { min_interval: 1s }
-
-      - key: 3_motor_power_electrical
-        mode: "22"
-        pid: "4656"
-        formula: "(((a*256+b)+32768)%65536-32768)*0.016"
-        unit: "kW"
-        state_class: measurement
-        accuracy_decimals: 2
-        update_interval: 1s
-        pre_commands: ["ATSH7E6"]
-        publish: { min_interval: 1s }
-
-      - key: 3_motor_power_mechanical
-        mode: "22"
-        pid: "4658"
-        formula: "(((a*256+b)+32768)%65536-32768)*0.016"
-        unit: "kW"
-        state_class: measurement
-        accuracy_decimals: 2
-        update_interval: 1s
-        pre_commands: ["ATSH7E6"]
-        publish: { min_interval: 1s }
-
-      # 16 Jul: relaxed 15s -> 30s (slow-changing thermal value).
-      - key: 2_motor_temp
-        mode: "22"
-        pid: "3E94"
-        formula: "(a*256+b)/64"      # SIGNED — see chat notes
-        unit: "°C"
-        device_class: temperature
-        state_class: measurement
-        accuracy_decimals: 1
-        update_interval: 30s
-        pre_commands: ["ATSH7E6"]
-
-      # 16 Jul: relaxed 5s -> 60s. Confirmed to track hv_battery_voltage /
-      # ready-state transitions correctly, but no active use case for
-      # high resolution here.
-      - key: 3_traction_dc_link_voltage
-        mode: "22"
-        pid: "3E93"
-        formula: "(a*256+b)/32"
-        unit: "V"
-        device_class: voltage
-        state_class: measurement
-        accuracy_decimals: 1
-        update_interval: 60s
-        pre_commands: ["ATSH7E6"]
-
-      # 16 Jul: added publish.min_interval=1s override (see motor sensors
-      # above for rationale).
-      - key: 3_accelerator_pedal
-        mode: "22"
-        pid: "F449"
-        formula: "a/2.55"
-        unit: "%"
-        state_class: measurement
-        accuracy_decimals: 1
-        update_interval: 1s
-        pre_commands: ["ATSH7E0"]
-        publish: { min_interval: 1s }
-
-      # ============================================================
-      # Steuergerät 01 — Motorelektronik / main ECU (header 7E0/7E8)
-      # ============================================================
-
-      # 16 Jul: removed 3_vehicle_speed (mode-22, PID F40D). Redundant
-      # with 4_vehicle_speed_std (standard mode-01 PID 0D) — both tracked
-      # each other closely in live testing, no accuracy reason to keep
-      # both. Standard PID kept since it's the more universally-defined
-      # one; this frees a slot in the shared polling queue.
-
-      # 16 Jul: relaxed 30s -> 60s (very slow-changing accessory voltage).
-      - key: 1_battery_12v_voltage
-        preset: battery_voltage
-        update_interval: 60s
-        pre_commands: ["ATSH7DF"]
-
-      # ============================================================
-      # Steuergerät 17 — Kombiinstrument / cluster (header 714/77E) —
-      # estimated_range REMOVED. Confirmed via live testing (16 Jul) that
-      # this sensor's non-standard header/CRA pattern was stalling the
-      # entire shared polling queue — disabling it alone fixed every other
-      # sensor's update lag. Same failure category as odometer above.
-      # ============================================================
-
-      # ============================================================
-      # Odometer — EXPERIMENTAL. Community reports this response is
-      # multi-frame (long ISO-TP reply); cheap ELM327 BLE clones may not
-      # reassemble it correctly. Byte offsets (b,c,d) are a best guess from
-      # forum notes, not independently confirmed. Watch for garbage/jumping
-      # values — if so, this one may need to be removed again.
-      # ============================================================
-
-      # Odometer removed — neither the VAG-specific mode-22 PID (multi-frame,
-      # unconfirmed byte offsets) nor the standard mode-01 PID A6 (likely
-      # not implemented on EU-market cars, added mainly for US/CARB
-      # anti-tampering requirements) returned usable data. Both also caused
-      # polling lag on other sensors — an unsupported/malformed-response
-      # PID sitting in the shared sequential poll queue delays everything
-      # behind it. No other documented odometer PID found for this car.
-
-      # 16 Jul: added publish.min_interval=1s override (see motor sensors
-      # above for rationale).
-      - key: 4_vehicle_speed_std
-        preset: speed
-        update_interval: 1s
-        pre_commands: ["ATSH7DF"]
-        publish: { min_interval: 1s }
-
-      # ============================================================
-      # New sensors, confirmed against community-vetted Car Scanner CSV
-      # (sharkcow/VW-e-UP-OBD-CAN-logs) — real CAN log analysis on this
-      # exact car model.
-      # ============================================================
-
-      # 16 Jul: relaxed 15s -> 30s (slow-changing thermal values).
-      - key: 2_hv_cell_temp_max
-        mode: "22"
-        pid: "1E0E"
-        formula: "(a*256+b)/64"
-        unit: "°C"
-        device_class: temperature
-        state_class: measurement
-        accuracy_decimals: 1
-        update_interval: 30s
-        pre_commands: ["ATSH7E5"]
-
-      - key: 2_hv_cell_temp_min
-        mode: "22"
-        pid: "1E0F"
-        formula: "(a*256+b)/64"
-        unit: "°C"
-        device_class: temperature
-        state_class: measurement
-        accuracy_decimals: 1
-        update_interval: 30s
-        pre_commands: ["ATSH7E5"]
-
-      - key: 1_hv_battery_power
+      - key: hv_battery_power
         mode: "22"
         pid: "1485"
         formula: "(((a*256+b)+32768)%65536-32768)/250"
@@ -334,45 +68,62 @@ devices:
         device_class: power
         state_class: measurement
         accuracy_decimals: 2
-        update_interval: 1s
+        update_interval: 5s
         pre_commands: ["ATSH7E0"]
 
-      # 16 Jul: relaxed 10s -> 30s, matching hv_battery_current treatment.
-      - key: 4_hv_network_current
-        mode: "22"
-        pid: "1617"
-        formula: "(((a*256+b)+32768)%65536-32768)/32"
-        unit: "A"
-        device_class: current
-        state_class: measurement
-        accuracy_decimals: 2
-        update_interval: 30s
-        pre_commands: ["ATSH7E0"]
+      - key: vehicle_speed_std
+        preset: speed
+        update_interval: 5s
+        pre_commands: ["ATSH7DF"]
+        publish: { min_interval: 5s }
 
-      # 16 Jul: relaxed 30s -> 60s (outdoor temp changes very slowly).
-      - key: 2_ambient_temp
+      # ============================================================
+      # Trip / average consumption — the trip computer's own value,
+      # confirmed documented (GoingElectric SG17 wiki). RISK: lives on
+      # the same header (714/77E) that caused estimated_range to stall
+      # the entire polling queue previously. Watch Logs closely after
+      # enabling — pull this sensor immediately if [LINK] Polling gaps
+      # reappear, same failure signature as before.
+      # ============================================================
+
+      - key: trip_avg_consumption
         mode: "22"
-        pid: "F446"
-        formula: "a-40"
-        unit: "°C"
-        device_class: temperature
+        pid: "22E3"
+        formula: "(a*256+b)/10"
+        unit: "kWh/100km"
         state_class: measurement
         accuracy_decimals: 1
         update_interval: 60s
-        pre_commands: ["ATSH7E0"]
+        pre_commands: ["ATSH714", "ATCRA77E"]
 
-      # 16 Jul: relaxed 30s -> 60s.
-      - key: 4_hv_battery_max_performance
+      # ============================================================
+      # Distance traveled ("Wegstrecke") — NEW, previously untested.
+      # Same 714/77E header risk as above. Unclear from documentation
+      # whether this is trip-scoped or resets some other way — verify
+      # behavior once live (does it grow continuously, or reset?).
+      # ============================================================
+
+      - key: distance_traveled
         mode: "22"
-        pid: "1502"
-        formula: "(a*256+b)/250"
-        unit: "kW"
-        device_class: power
+        pid: "2203"
+        formula: "(a*256+b)*10"
+        unit: "km"
         state_class: measurement
-        accuracy_decimals: 2
         update_interval: 60s
-        pre_commands: ["ATSH7E0"]
+        pre_commands: ["ATSH714", "ATCRA77E"]
 
-      # 16 Jul: removed 4_hv_battery_loss_power_UNCONFIRMED_UNIT. Live
-      # testing showed it never returned anything but 0 W — combined with
-      # the already-unconfirmed unit guess, not worth the polling slot.
+      # ============================================================
+      # Odometer — EXPERIMENTAL RETRY. Failed twice before (multi-frame
+      # response, unconfirmed byte offsets). Retrying now in isolation
+      # (not competing with 25 other sensors) — better odds, still not
+      # guaranteed. Remove again if it returns garbage or stalls polling.
+      # ============================================================
+
+      - key: odometer
+        mode: "22"
+        pid: "02BD"
+        formula: "b*65536+c*256+d"
+        unit: "km"
+        state_class: total_increasing
+        update_interval: 60s
+        pre_commands: ["ATSH7E5"]
