@@ -54,21 +54,25 @@ devices:
         update_interval: 30s
         pre_commands: ["ATSH7E5"]
 
-      # MEDIUM CONFIDENCE — NOW DISPROVEN BY LIVE TESTING (16 Jul): read
-      # 11.8% while hv_soc read 74.5% — not a plausible normalized-SOC
-      # relationship (should be somewhat higher than gross, not 1/6th of
-      # it). Either the PID or the formula is wrong. Kept disabled by
-      # default; consider removing entirely if not worth further guessing.
-      - key: 4_hv_soc_display_UNCONFIRMED
+      # 17 Jul: replaced. OVMS source code confirms PID 1164 (VWUP_MOT_ELEC_SOC_NORM)
+      # "only loosely correlates" to the dashboard SOC and updates while
+      # driving only — our disproven guess above was never going to work,
+      # regardless of formula. The real dashboard-matching SOC lives on a
+      # different PID/ECU entirely, confirmed via OVMS source:
+      # VWUP_CHG_MGMT_SOC_NORM, PID 0x1DD0, header 765/7CF, formula a/2.
+      # OVMS's own comment: "This SOC matches the instrument cluster SOC
+      # and is available while driving and while charging" — likely the
+      # best source for EVCC-style charge-limiting.
+      - key: 1_hv_soc_dashboard
         mode: "22"
-        pid: "1164"
-        formula: "a/2.55"
+        pid: "1DD0"
+        formula: "a/2"
         unit: "%"
         device_class: battery
         state_class: measurement
         accuracy_decimals: 1
-        update_interval: 10s
-        pre_commands: ["ATSH7E0"]
+        update_interval: 30s
+        pre_commands: ["ATSH765", "ATCRA7CF"]
 
       - key: 1_hv_battery_voltage
         mode: "22"
